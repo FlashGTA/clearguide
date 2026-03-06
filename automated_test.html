@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ClearGuide Automated Test Runner</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+            background: #f1f5f9;
+        }
+
+        .test-suite {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .test-case {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pass {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .fail {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .log {
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 13px;
+            min-height: 100px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 0 auto 20px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🤖 ClearGuide 자동화 테스트 러너</h1>
+    <button onclick="runAllTests()">테스트 전체 실행</button>
+
+    <div class="test-suite">
+        <div id="results"></div>
+    </div>
+    <div class="log" id="console-log"></div>
+
+    <script src="sdk/clearguide-player.js"></script>
+    <script>
+        // 테스트 유틸리티
+        function log(msg, type = 'info') {
+            const consoleDiv = document.getElementById('console-log');
+            const time = new Date().toLocaleTimeString();
+            consoleDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        async function assert(desc, fn) {
+            const el = document.createElement('div');
+            el.className = 'test-case';
+            try {
+                await fn();
+                el.innerHTML = `<span>${desc}</span> <span class="pass">PASS ✅</span>`;
+                log(`PASS: ${desc}`);
+            } catch (e) {
+                el.innerHTML = `<span>${desc}</span> <span class="fail">FAIL ❌ (${e})</span>`;
+                log(`FAIL: ${desc} - ${e}`, 'error');
+                console.error(e);
+            }
+            document.getElementById('results').appendChild(el);
+        }
+
+        // 테스트 시나리오 데이터
+        const TEST_WORKFLOW = {
+            id: "test_wf",
+            name: "Test Flow",
+            steps: [
+                { label: "Step 1", message: "Start", selector: null },
+                { label: "Step 2", message: "End", selector: null }
+            ]
+        };
+
+        // 테스트 메인 함수
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('console-log').innerHTML = '';
+
+            log("🚀 테스트 시작...");
+            ClearGuide.init({ showDashboard: true, accentColor: '#3b82f6' });
+
+            // 1. 초기화 테스트
+            await assert("SDK 초기화 확인", () => {
+                if (!window.ClearGuide) throw "ClearGuide 객체가 없습니다.";
+            });
+
+            // 2. 워크플로우 시작 테스트
+            await assert("워크플로우 시작 및 세션 생성", async () => {
+                ClearGuide.play(TEST_WORKFLOW);
+                const session = sessionStorage.getItem('cg_active_session');
+                if (!session) throw "세션이 생성되지 않았습니다.";
+                if (ClearGuide.currentStep !== 0) throw "시작 스텝이 0이 아닙니다.";
+            });
+
+            // 3. 단계 이동 테스트
+            await assert("다음 단계 이동 (Step 0 -> 1)", async () => {
+                ClearGuide.moveStep(1);
+                if (ClearGuide.currentStep !== 1) throw "Step 1로 이동하지 못했습니다.";
+            });
+
+            // 4. 종료 및 세션 클리어 (Zombie Session Fix 검증)
+            await assert("가이드 종료 시 세션 삭제 (Fix 검증)", async () => {
+                ClearGuide.exitGuide();
+                const session = sessionStorage.getItem('cg_active_session');
+                // 주의: exitGuide()에서 세션이 완전히 삭제되거나, isGuideHidden 상태만 남아야 함.
+                // 현재 로직상 exitGuide는 clearSession()을 호출함.
+                if (session) throw "세션 데이터가 남아있습니다 (Zombie Session).";
+            });
+
+            // 5. 마스터 토글 테스트 (v1.2.0)
+            await assert("마스터 토글 렌더링 확인", async () => {
+                ClearGuide.showQuickBar([TEST_WORKFLOW]);
+                const toggle = ClearGuide.shadowRoot.querySelector('#cv-toggle-control');
+                if (!toggle) throw "마스터 토글 버튼이 없습니다.";
+                if (toggle.innerText.includes("도움말 켜기") === false) throw "초기 상태가 '켜기' 모드가 아닙니다.";
+            });
+
+            // 6. Auto Advance 테스트 (v1.2.3)
+            await assert("Auto Advance 기능 확인", async () => {
+                const AUTO_WF = {
+                    id: "auto_test",
+                    steps: [{ label: "Click", selector: "body", interactionType: "click", actionRequired: true, autoAdvance: true }, { label: "End" }]
+                };
+                ClearGuide.play(AUTO_WF);
+
+                // 비동기 요소 탐색(ensureVisibility) 대기 (~700ms)
+                await new Promise(r => setTimeout(r, 800));
+
+                // 강제 클릭 이벤트 발생 (Mocking)
+                document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+                // 클릭 즉시 다음 단계(1)로 넘어갔는지 확인
+                if (ClearGuide.currentStep !== 1) throw "Auto Advance가 작동하지 않았습니다. (Step 0 -> 1 실패)";
+            });
+
+            log("🏁 테스트 완료!");
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ClearGuide Player SDK Demo</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 50px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .sample-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+
+        .highlight-area {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            padding: 40px;
+            margin-top: 30px;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        #target-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>ClearGuide Player SDK 기술 시연</h1>
+        <p>이 페이지는 익스텐션 설치 없이 작동하는 <b>ClearGuide Player SDK</b>의 기능을 테스트하기 위한 Mockup입니다.</p>
+        <p>화면 상단의 <b>'ClearGuide 가이드'</b> 바를 통해 가이드를 시작하거나 스텝 상세 내용을 확인할 수 있습니다.</p>
+
+        <div class="highlight-area">
+            <h3>여기가 가이드 목표 지점입니다.</h3>
+            <div style="margin-top: 20px; margin-bottom: 20px;">
+                <label for="quantity-input" style="display: block; font-size: 14px; margin-bottom: 5px;">수량 입력:</label>
+                <input type="number" id="quantity-input" class="sample-btn" style="width: 100px; text-align: center;"
+                    placeholder="0">
+            </div>
+            <button id="target-button" class="sample-btn">결제하기</button>
+            <p style="font-size: 12px; color: #64748b; margin-top: 10px;">(익스텐션에서 이 버튼을 픽업하여 시나리오를 만들 수 있습니다.)</p>
+        </div>
+    </div>
+
+    <p style="font-size: 12px; color: #64748b; margin-top: 10px;">(익스텐션에서 이 버튼을 픽업하여 시나리오를 만들 수 있습니다.)</p>
+    </div>
+    </div>
+
+    <!-- 1. ClearGuide SDK 로드 -->
+    <script src="sdk/clearguide-player.js"></script>
+
+    <script>
+        // 목표 버튼 클릭 시 완료 페이지로 이동 (실제 결제 후 이동 시나리오)
+        document.getElementById('target-button').addEventListener('click', () => {
+            alert("결제 처리가 완료되었습니다. 완료 페이지로 이동합니다.");
+            setTimeout(() => location.href = 'player_demo_complete.html', 500);
+        });
+
+        // 2. SDK 초기화 (v1.1.0 대시보드 활성화)
+        ClearGuide.init({
+            baseUrl: 'public/icons/',
+            accentColor: '#6366f1',
+            showDashboard: true
+        });
+
+        // 3. v1.1.0 기능을 포함한 워크플로우 (상태바 대시보드 및 액션 대기)
+        const sampleWorkflow = {
+            id: "wf_v110_demo",
+            name: "v1.1.0 고도화 기능 데모",
+            domain: window.location.hostname,
+            steps: [
+                {
+                    label: "시스템 안내",
+                    selector: null,
+                    message: "ClearGuide v1.1.0에 오신 것을 환영합니다! 우측 하단에서 '진행 대시보드'를 확인하실 수 있습니다.",
+                    urlPattern: "*"
+                },
+                {
+                    label: "수량 입력",
+                    selector: "#quantity-input",
+                    actionRequired: true,
+                    interactionType: "input",
+                    message: "먼저 상품 수량을 입력해주세요. (인터랙티브 액션: 입력 감지 시 다음 단계 활성화)",
+                    urlPattern: "*"
+                },
+                {
+                    label: "결제하기",
+                    selector: "#target-button",
+                    actionRequired: true,
+                    interactionType: "click",
+                    autoAdvance: true, // v1.2.3: 클릭 즉시 다음 단계로 저장 (페이지 이동 대응)
+                    message: "수량 입력이 완료되었습니다. 이제 '결제하기' 버튼을 클릭하세요.",
+                    urlPattern: "*"
+                },
+                {
+                    label: "완료",
+                    selector: null,
+                    message: "🎉 축하합니다! 결제가 완료되었습니다. 대시보드에서도 전체 과정을 확인하셨나요?",
+                    urlPattern: "*complete*"
+                }
+            ]
+        };
+
+        // 4. 익스텐션 스타일의 퀵바 표시
+        ClearGuide.showQuickBar([sampleWorkflow]);
+    </script>
+</body>
+
+</html>

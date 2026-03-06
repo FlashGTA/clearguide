@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ClearGuide - 결제 완료</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 50px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .success-box {
+            background: white;
+            border: 3px solid #10b981;
+            padding: 60px 40px;
+            margin-top: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2);
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #64748b;
+            font-size: 18px;
+        }
+
+        .back-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="success-box">
+            <div class="success-icon">✅</div>
+            <h1>결제가 완료되었습니다!</h1>
+            <p>주문이 성공적으로 처리되었습니다. 감사합니다.</p>
+            <button class="back-btn" onclick="location.href='player_demo.html'">처음으로 돌아가기</button>
+        </div>
+    </div>
+
+    <!-- ClearGuide SDK 로드 -->
+    <script src="sdk/clearguide-player.js"></script>
+
+    <script>
+        // SDK 초기화 (동일한 설정 유지)
+        ClearGuide.init({
+            baseUrl: 'public/icons/',
+            accentColor: '#10b981', // 완료 페이지는 녹색 테마
+            showDashboard: true
+        });
+
+        // 세션 기반 자동 복구 - 이전 페이지에서 저장된 세션이 있으면 자동으로 다음 스텝 표시
+        // (checkSession은 init에서 이미 호출됨)
+    </script>
+</body>
+
+</html>
