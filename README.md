@@ -1,17 +1,17 @@
 # ClearGuide
 
-Public release repository for the `ClearGuide` browser extension.
+`ClearGuide`는 웹페이지 위에 단계별 안내 레이어를 띄워 사용자가 필요한 작업을 더 쉽게 따라갈 수 있도록 돕는 브라우저 확장 프로그램입니다.
 
-This repo is intended for publishing the user-facing extension code while the source monorepo stays private for ongoing development. It includes the runtime extension, demo pages, and the embeddable player SDK.
+이 저장소는 공개 배포용 레포지토리입니다. 실제 개발은 비공개 monorepo에서 진행하고, 이 레포에는 배포에 필요한 확장 프로그램 코드와 데모 파일, SDK만 포함합니다.
 
-## What It Does
+## 주요 기능
 
-- Build guided workflows directly on top of live web pages
-- Highlight the current step with an isolated overlay UI
-- Resume workflows across page transitions
-- Export guides for use with the standalone player SDK
+- 실제 웹페이지 위에 단계별 가이드 오버레이 표시
+- 현재 진행해야 하는 요소를 강조 표시
+- 페이지 이동 후에도 워크플로우 이어서 실행
+- 제작한 가이드를 Player SDK로 재사용 가능
 
-## Included In This Public Repo
+## 포함된 구성
 
 - `manifest.json`
 - `src/`
@@ -22,23 +22,22 @@ This repo is intended for publishing the user-facing extension code while the so
 - `player_demo_complete.html`
 - `automated_test.html`
 
-## Install As An Unpacked Extension
+## 설치 방법
 
-1. Open `chrome://extensions/`
-2. Enable developer mode
-3. Click `Load unpacked`
-4. Select this repository root
+1. 브라우저에서 `chrome://extensions/` 를 엽니다.
+2. 우측 상단의 개발자 모드를 켭니다.
+3. `압축해제된 확장 프로그램을 로드합니다`를 클릭합니다.
+4. 이 저장소 루트를 선택합니다.
 
-## Local Test And Demo Files
+## 테스트 및 데모
 
-- `automated_test.html`: lightweight browser-side regression checks
-- `player_demo.html`: SDK demo page
-- `player_demo_complete.html`: extended SDK demo page
+- `automated_test.html`: 브라우저에서 바로 열 수 있는 경량 회귀 테스트
+- `player_demo.html`: Player SDK 기본 데모
+- `player_demo_complete.html`: Player SDK 확장 데모
 
-## Notes
+## 참고 사항
 
-- License: `PolyForm Noncommercial 1.0.0`
-- Commercial use requires a separate written license
-- Branding and logos remain reserved under `TRADEMARK.md`
-- The extension display name in `manifest.json` is exported as `ClearGuide`
-- Internal roadmap, audit, and strategy documents are intentionally excluded from this public repo
+- 기본 라이선스는 `PolyForm Noncommercial 1.0.0` 입니다.
+- 상업적 사용은 별도 서면 라이선스가 필요합니다.
+- 이름, 로고, 아이콘 등 브랜드 자산은 `TRADEMARK.md` 기준으로 보호됩니다.
+- 이 공개 레포에는 내부 로드맵, 감사 문서, 전략 문서를 포함하지 않습니다.
