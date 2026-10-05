@@ -79,6 +79,13 @@ function validateExtensionBoundary() {
   }
 }
 
+function validateLicense() {
+  const license = read("LICENSE");
+  assert(license.includes("Apache License"), "LICENSE must be Apache-2.0");
+  assert(license.includes("Version 2.0"), "LICENSE must be Apache License 2.0");
+  assert(!fs.existsSync(path.join(root, "COMMERCIAL_LICENSE.md")), "obsolete commercial restriction file must be removed");
+}
+
 function validateReleaseDocs() {
   for (const file of [
     "README.md",
@@ -96,6 +103,7 @@ validateManifest();
 validateGuideContract();
 validatePlayerBoundary();
 validateExtensionBoundary();
+validateLicense();
 validateReleaseDocs();
 
 console.log("ClearGuide release validation: PASS");
