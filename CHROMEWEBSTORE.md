@@ -45,9 +45,9 @@ ClearGuide Studio does not require a ClearGuide account and does not send your g
 
 Stores guide templates, author preferences, and preview session state locally in the browser.
 
-### activeTab
+### tabs
 
-Provides temporary access to the current tab after the user opens or invokes ClearGuide Studio, so the extension can identify the page and start a user-requested authoring action.
+ClearGuide Studio reads the URL of the currently active tab so it can determine the exact website origin for which the author is requesting access. The extension does not need permanent host access to every site; it uses the active tab URL to request only the selected site's optional host permission.
 
 ### scripting
 
