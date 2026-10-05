@@ -1,43 +1,118 @@
 # ClearGuide
 
-`ClearGuide`는 웹페이지 위에 단계별 안내 레이어를 띄워 사용자가 필요한 작업을 더 쉽게 따라갈 수 있도록 돕는 브라우저 확장 프로그램입니다.
+ClearGuide는 웹페이지 위에 단계별 안내를 제공하는 **Guide Studio + Player** 프로젝트입니다.
 
-이 저장소는 공개 배포용 레포지토리입니다. 실제 개발은 비공개 monorepo에서 진행하고, 이 레포에는 배포에 필요한 확장 프로그램 코드와 데모 파일, SDK만 포함합니다.
+가이드의 **생산(Authoring)** 과 **소비(Playback)** 를 분리합니다.
 
-## 주요 기능
+```text
+ClearGuide Studio (Chrome Extension)
+        ↓
+Guide Template (JSON)
+        ↓
+ClearGuide Player (Web SDK)
+        ↓
+일반 사용자 — Extension 설치 불필요
+```
 
-- 실제 웹페이지 위에 단계별 가이드 오버레이 표시
-- 현재 진행해야 하는 요소를 강조 표시
-- 페이지 이동 후에도 워크플로우 이어서 실행
-- 제작한 가이드를 Player SDK로 재사용 가능
+## 1. ClearGuide Studio
 
-## 포함된 구성
+Chrome Extension은 가이드를 만드는 사람을 위한 도구입니다.
 
-- `manifest.json`
-- `src/`
-- `public/`
-- `sdk/`
-- `USER_GUIDE.md`
-- `player_demo.html`
-- `player_demo_complete.html`
-- `automated_test.html`
+- 실제 웹페이지에서 안내 대상 요소 선택
+- 단계별 설명 작성
+- 가이드 미리보기
+- JSON Import / Export
+- 다중 페이지 가이드 작성·검증
 
-## 설치 방법
+사이트 접근 권한은 설치 시 전체 사이트에 요청하지 않고, 작성자가 가이드를 만들거나 미리볼 사이트를 선택했을 때 요청하는 방향으로 구성합니다.
 
-1. 브라우저에서 `chrome://extensions/` 를 엽니다.
-2. 우측 상단의 개발자 모드를 켭니다.
-3. `압축해제된 확장 프로그램을 로드합니다`를 클릭합니다.
-4. 이 저장소 루트를 선택합니다.
+### 로컬 설치
 
-## 테스트 및 데모
+1. 저장소를 clone/download 합니다.
+2. Chrome에서 `chrome://extensions/`를 엽니다.
+3. 개발자 모드를 켭니다.
+4. **압축해제된 확장 프로그램을 로드합니다**를 선택합니다.
+5. 이 저장소 루트를 선택합니다.
 
-- `automated_test.html`: 브라우저에서 바로 열 수 있는 경량 회귀 테스트
-- `player_demo.html`: Player SDK 기본 데모
-- `player_demo_complete.html`: Player SDK 확장 데모
+## 2. ClearGuide Player
 
-## 참고 사항
+`sdk/clearguide-player.js`는 일반 웹사이트에서 사용할 수 있는 독립 실행형 Player입니다.
 
-- 기본 라이선스는 `PolyForm Noncommercial 1.0.0` 입니다.
-- 상업적 사용은 별도 서면 라이선스가 필요합니다.
-- 이름, 로고, 아이콘 등 브랜드 자산은 `TRADEMARK.md` 기준으로 보호됩니다.
-- 이 공개 레포에는 내부 로드맵, 감사 문서, 전략 문서를 포함하지 않습니다.
+웹사이트 운영자가 Player와 Guide Template을 사이트에 배포하면 일반 사용자는 Chrome Extension을 설치할 필요가 없습니다.
+
+### 객체로 실행
+
+```html
+<script src="/assets/clearguide-player.js"></script>
+<script>
+  ClearGuide.init({ showDashboard: true });
+  ClearGuide.play(myGuideTemplate);
+</script>
+```
+
+### JSON 템플릿 URL로 실행
+
+```html
+<script src="/assets/clearguide-player.js"></script>
+<script>
+  ClearGuide.init({ showDashboard: true });
+  ClearGuide.playFromUrl('/guides/signup.json');
+</script>
+```
+
+운영 환경에서는 Player와 Guide JSON을 해당 사이트와 같은 출처에서 제공하는 방식을 우선 권장합니다.
+
+## Guide Template
+
+Studio와 Player 사이의 공통 계약은 JSON Guide Template입니다.
+
+- JSON Schema: [schema/guide.schema.json](./schema/guide.schema.json)
+- 아키텍처: [docs/Guide_Producer_Consumer_Architecture.md](./docs/Guide_Producer_Consumer_Architecture.md)
+
+Guide Template은 향후 CMS, Git 저장소, 정적 파일, API 등 다양한 배포 채널에서 사용할 수 있습니다.
+
+## Chrome Web Store
+
+Store 출시 정보와 체크리스트는 [CHROMEWEBSTORE.md](./CHROMEWEBSTORE.md)를 Source of Truth로 사용합니다.
+
+Store Extension의 목적은 **웹 가이드 제작과 미리보기**입니다. Player는 웹사이트에 직접 삽입되는 별도 소비 경로입니다.
+
+Store ZIP 생성:
+
+```bash
+python scripts/package_store.py
+```
+
+생성 ZIP에는 Extension 런타임 파일(`manifest.json`, `src/`, `public/`)만 포함됩니다.
+
+## Repository Structure
+
+```text
+manifest.json                 # ClearGuide Studio manifest
+src/                          # Studio service worker / content script
+public/                       # Studio popup / icons
+sdk/clearguide-player.js      # zero-install web Player
+schema/guide.schema.json      # Studio ↔ Player contract
+docs/                         # public architecture / guides
+scripts/package_store.py      # reproducible Store package
+CHROMEWEBSTORE.md             # Store submission source of truth
+PRIVACY.md                    # Extension privacy policy
+CONTRIBUTING.md
+SECURITY.md
+```
+
+## Privacy
+
+현재 Studio는 가이드 데이터를 `chrome.storage.local`에 저장하며 ClearGuide 서버로 전송하지 않습니다.
+
+자세한 내용은 [PRIVACY.md](./PRIVACY.md)를 참조하세요.
+
+## License
+
+현재 저장소의 소프트웨어 라이선스는 **PolyForm Noncommercial 1.0.0**입니다. 따라서 소스는 공개되어 있지만 상업적 사용에는 제한이 있습니다.
+
+일반적인 오픈소스 프로젝트로 전환하여 상업적 재사용까지 허용하려면 Apache-2.0 등으로 별도의 라이선스 결정을 해야 합니다. 브랜드·로고 정책은 [TRADEMARK.md](./TRADEMARK.md)에서 별도로 관리합니다.
+
+## Contributing
+
+외부 기여 절차는 [CONTRIBUTING.md](./CONTRIBUTING.md)를 참조하세요.
