@@ -237,10 +237,149 @@ async function handleMessage(request, sender) {
   }
 }
 
+const ALLOWED_INTERACTION_TYPES = new Set([
+  "none",
+  "click",
+  "input",
+  "change",
+  "submit",
+  "mouseover",
+  "mouseenter"
+]);
+
 function normalizeWorkflow(input) {
-  const workflow = input && typeof input === "object" ? input : {};
+  if (!input || typeof input !== "object") {
+    throw new Error("INVALID_WORKFLOW");
+  }
+
+  const steps = Array.isArray(input.steps)
+    ? input.steps.map(normalizeStep).filter(Boolean)
+    : [];
+
+  if (steps.length === 0) {
+    throw new Error("WORKFLOW_REQUIRES_STEPS");
+  }
+
+  const originUrl = sanitizeHttpUrl(input.originUrl);
+  const domain = sanitizeDomain(input.domain, originUrl);
+
   return {
-    ...workflow,
-    schemaVersion: workflow.schemaVersion || "1.0"
+    schemaVersion: "1.0",
+    id: sanitizeIdentifier(input.id) || `guide_${Date.now()}`,
+    name: sanitizeText(input.name, 120) || "Untitled guide",
+    domain,
+    originUrl,
+    createdAt: sanitizeIsoDate(input.createdAt) || new Date().toISOString(),
+    steps
   };
+}
+
+function normalizeStep(step) {
+  if (!step || typeof step !== "object") return null;
+
+  const message = sanitizeText(step.message, 1000);
+  const urlPattern = sanitizeGuidePattern(step.urlPattern);
+  if (!message || !urlPattern) return null;
+
+  return {
+    selector: sanitizeSelector(step.selector),
+    label: sanitizeText(step.label, 120) || "",
+    message,
+    urlPattern,
+    trigger: ALLOWED_INTERACTION_TYPES.has(step.trigger) ? step.trigger : "none",
+    actionRequired: Boolean(step.actionRequired),
+    interactionType: ALLOWED_INTERACTION_TYPES.has(step.interactionType)
+      ? step.interactionType
+      : "none",
+    autoAdvance: Boolean(step.autoAdvance)
+  };
+}
+
+function sanitizeIdentifier(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().replace(/[^a-zA-Z0-9._:-]+/gu, "_").slice(0, 120);
+  return normalized || null;
+}
+
+function sanitizeText(value, maxLength) {
+  if (typeof value !== "string") return null;
+  const normalized = value.replace(/\s+/gu, " ").trim();
+  return normalized ? normalized.slice(0, maxLength) : null;
+}
+
+function sanitizeSelector(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string") return null;
+
+  const selector = value.trim().slice(0, 500);
+  if (!selector || selector.includes("\0")) return null;
+
+  return selector;
+}
+
+function sanitizeDomain(value, originUrl) {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (/^[a-z0-9.-]+$/u.test(candidate)) return candidate;
+
+  if (originUrl) {
+    try {
+      return new URL(originUrl).hostname;
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+function sanitizeHttpUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+    url.username = "";
+    url.password = "";
+    url.hash = "";
+    url.search = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeGuidePattern(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const raw = value.trim().slice(0, 600);
+
+  if (raw === "*") return "*";
+
+  if (/^https?:\/\//iu.test(raw)) {
+    const token = "__CG_WILDCARD__";
+    try {
+      const url = new URL(raw.replace(/\*/gu, token));
+      if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+      if (url.hostname.includes(token.toLowerCase())) return null;
+
+      url.username = "";
+      url.password = "";
+      url.hash = "";
+      url.search = "";
+
+      return (url.origin + url.pathname).replace(new RegExp(token, "gu"), "*");
+    } catch {
+      return null;
+    }
+  }
+
+  // Legacy path/text glob patterns such as *complete* may be matched,
+  // but are never used as navigation destinations.
+  return /^[a-zA-Z0-9_./*-]+$/u.test(raw) ? raw : null;
+}
+
+function sanitizeIsoDate(value) {
+  if (typeof value !== "string") return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
