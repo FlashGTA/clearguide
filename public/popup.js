@@ -193,16 +193,10 @@ async function ensureOriginsGranted(origins) {
     const requested = [...new Set(origins.filter(Boolean))];
     if (requested.length === 0) return true;
 
-    const missing = [];
-    for (const origin of requested) {
-        const granted = await chrome.permissions.contains({ origins: [origin] });
-        if (!granted) missing.push(origin);
-    }
-
-    if (missing.length > 0) {
-        const granted = await chrome.permissions.request({ origins: missing });
-        if (!granted) return false;
-    }
+    // Keep permissions.request as the first asynchronous operation in the
+    // user-click flow so Chrome can associate it with the user gesture.
+    const granted = await chrome.permissions.request({ origins: requested });
+    if (!granted) return false;
 
     const registration = await chrome.runtime.sendMessage({
         action: 'registerGrantedOrigins',
