@@ -2,21 +2,27 @@ console.log("[ClearGuide Studio] Service Worker initialized");
 
 const CONTENT_SCRIPT_FILE = "src/content/index.js";
 const CONTENT_SCRIPT_PREFIX = "clearguide-site-";
+let registrationQueue = Promise.resolve();
+
+function queueRegistration(task) {
+  registrationQueue = registrationQueue.then(task, task);
+  return registrationQueue;
+}
 
 chrome.runtime.onInstalled.addListener(() => {
-  void syncRegisteredContentScripts();
+  void queueRegistration(syncRegisteredContentScripts);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void syncRegisteredContentScripts();
+  void queueRegistration(syncRegisteredContentScripts);
 });
 
 chrome.permissions.onAdded.addListener(({ origins = [] }) => {
-  void registerContentScriptsForOrigins(origins);
+  void queueRegistration(() => registerContentScriptsForOrigins(origins));
 });
 
 chrome.permissions.onRemoved.addListener(({ origins = [] }) => {
-  void unregisterContentScriptsForOrigins(origins);
+  void queueRegistration(() => unregisterContentScriptsForOrigins(origins));
 });
 
 // Multi-page preview resume. tab.url is available for origins the user has granted.
@@ -83,6 +89,7 @@ function toHttpOriginPattern(value) {
     const normalized = candidate.replace(/\*$/u, "");
     const url = new URL(normalized);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (!url.hostname || url.hostname.includes("*")) return null;
     return `${url.protocol}//${url.host}/*`;
   } catch {
     const match = candidate.match(/^(https?):\/\/([^/]+)\/\*$/u);
@@ -165,7 +172,7 @@ async function handleMessage(request, sender) {
         return { success: false, error: "HOST_PERMISSION_NOT_GRANTED" };
       }
 
-      await registerContentScriptsForOrigins(origins);
+      await queueRegistration(() => registerContentScriptsForOrigins(origins));
       return { success: true, origins };
     }
 
