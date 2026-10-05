@@ -1,4 +1,7 @@
-console.log("[ClearView AI] Content Script Injected (Connect++ Z-Index Fix)");
+(() => {
+  if (globalThis.__clearGuideStudioEngine) return;
+
+console.log("[ClearGuide Studio] Content script injected");
 
 class ClearViewEngine {
   constructor() {
@@ -30,6 +33,10 @@ class ClearViewEngine {
     // 1. 메시지 리스너 등록
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log("[ClearGuide] Received message:", request.action);
+      if (request.action === "ping") {
+        sendResponse({ ready: true });
+        return;
+      }
       if (request.action === "activate") {
         this.startGuide();
       } else if (request.action === "startPicker") {
@@ -583,6 +590,7 @@ class ClearViewEngine {
 
     const domain = window.location.hostname;
     const workflow = {
+      schemaVersion: "1.0",
       id: `wf_${Date.now()}`,
       name: name,
       domain: domain,
@@ -804,4 +812,5 @@ class ClearViewEngine {
   }
 }
 
-new ClearViewEngine();
+globalThis.__clearGuideStudioEngine = new ClearViewEngine();
+})();
