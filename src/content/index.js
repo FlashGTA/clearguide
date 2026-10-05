@@ -130,8 +130,8 @@ class ClearViewEngine {
       pointer-events: auto; font-family: sans-serif; transition: all 0.3s;
     `;
 
-    let buttonsHtml = workflows.map(w => `
-      <button class="cv-quick-play" data-id="${w.id}" style="
+    const buttonsHtml = workflows.map((w, index) => `
+      <button class="cv-quick-play" data-index="${index}" style="
         background: #3b82f6; border: none; color: white; padding: 6px 14px;
         border-radius: 15px; font-size: 11px; font-weight: bold; cursor: pointer;
         white-space: nowrap; transition: all 0.2s;
@@ -168,8 +168,8 @@ class ClearViewEngine {
     // 이벤트 바인딩
     this.shadowRoot.querySelectorAll('.cv-quick-play').forEach(btn => {
       btn.addEventListener('click', () => {
-        const wfId = btn.getAttribute('data-id');
-        const workflow = workflows.find(w => w.id === wfId);
+        const workflowIndex = Number(btn.getAttribute('data-index'));
+        const workflow = Number.isInteger(workflowIndex) ? workflows[workflowIndex] : null;
         if (workflow) {
           bar.remove();
           this.globalWorkflow = workflow;
@@ -296,6 +296,29 @@ class ClearViewEngine {
     function closeDragElement() {
       document.onmouseup = null;
       document.onmousemove = null;
+    }
+  }
+
+  safeQuerySelector(selector) {
+    if (typeof selector !== 'string' || !selector.trim()) return null;
+    try {
+      return document.querySelector(selector);
+    } catch {
+      console.warn("[ClearGuide] Invalid selector ignored:", selector);
+      return null;
+    }
+  }
+
+  safeNavigationUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    if (value.includes('*')) return null;
+
+    try {
+      const url = new URL(value, window.location.href);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+      return url.toString();
+    } catch {
+      return null;
     }
   }
 
@@ -624,7 +647,7 @@ class ClearViewEngine {
   }
 
   async ensureVisibility(selector, trigger) {
-    const el = document.querySelector(selector);
+    const el = this.safeQuerySelector(selector);
     if (!el) return null;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     await new Promise(r => setTimeout(r, 600));
@@ -800,10 +823,15 @@ class ClearViewEngine {
       chrome.runtime.sendMessage({ action: "updateWorkflowStep", stepIndex: this.currentStep }, () => {
         const nextStep = this.config.steps[this.currentStep];
         if (!this.urlMatchesPattern(window.location.href, nextStep.urlPattern)) {
-          alert("다음 단계 수행을 위해 페이지를 이동합니다.");
-          window.location.href = nextStep.urlPattern;
+          const targetUrl = this.safeNavigationUrl(nextStep.urlPattern);
+          if (!targetUrl) {
+            console.warn("[ClearGuide] Blocked unsafe or non-navigable URL pattern:", nextStep.urlPattern);
+            this.renderMissingUI({ ...nextStep, label: nextStep.label || "안전한 이동 URL이 필요합니다" });
+            return;
+          }
+          window.location.assign(targetUrl);
         } else {
-          this.renderHighlight();
+          void this.renderHighlight();
         }
       });
     } else if (nextIdx >= this.config.steps.length) {
