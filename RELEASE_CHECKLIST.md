@@ -8,6 +8,8 @@
 
 ## Before each release
 
+Run the full manual gate in [docs/CHROME_RUNTIME_SMOKE_TEST.md](./docs/CHROME_RUNTIME_SMOKE_TEST.md).
+
 ### Manifest / permissions
 
 - [ ] `manifest_version` is 3
