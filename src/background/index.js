@@ -2,27 +2,17 @@ console.log("[ClearGuide Studio] Service Worker initialized");
 
 const CONTENT_SCRIPT_FILE = "src/content/index.js";
 const CONTENT_SCRIPT_PREFIX = "clearguide-site-";
-let registrationQueue = Promise.resolve();
-
-function queueRegistration(task) {
-  registrationQueue = registrationQueue.then(task, task);
-  return registrationQueue;
-}
 
 chrome.runtime.onInstalled.addListener(() => {
-  void queueRegistration(syncRegisteredContentScripts);
+  void syncRegisteredContentScripts();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void queueRegistration(syncRegisteredContentScripts);
-});
-
-chrome.permissions.onAdded.addListener(({ origins = [] }) => {
-  void queueRegistration(() => registerContentScriptsForOrigins(origins));
+  void syncRegisteredContentScripts();
 });
 
 chrome.permissions.onRemoved.addListener(({ origins = [] }) => {
-  void queueRegistration(() => unregisterContentScriptsForOrigins(origins));
+  void unregisterContentScriptsForOrigins(origins);
 });
 
 // Multi-page preview resume. tab.url is available for origins the user has granted.
@@ -149,12 +139,14 @@ function urlMatchesPattern(url, pattern) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  void handleMessage(request, sender)
-    .then(sendResponse)
-    .catch((error) => {
+  void (async () => {
+    try {
+      sendResponse(await handleMessage(request, sender));
+    } catch (error) {
       console.error("[ClearGuide Studio] message error", error);
       sendResponse({ success: false, error: error?.message || "UNKNOWN_ERROR" });
-    });
+    }
+  })();
   return true;
 });
 
@@ -172,7 +164,7 @@ async function handleMessage(request, sender) {
         return { success: false, error: "HOST_PERMISSION_NOT_GRANTED" };
       }
 
-      await queueRegistration(() => registerContentScriptsForOrigins(origins));
+      await registerContentScriptsForOrigins(origins);
       return { success: true, origins };
     }
 
