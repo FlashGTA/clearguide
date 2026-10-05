@@ -6,7 +6,7 @@
   "description": "Create and preview step-by-step web guides on sites you choose, then export reusable guide templates.",
   "permissions": [
     "storage",
-    "tabs",
+    "activeTab",
     "scripting"
   ],
   "optional_host_permissions": [
