@@ -54,3 +54,11 @@ jobs:
 
           print(f"Store package validation: PASS ({packages[0]})")
           PY
+
+      - name: Upload Store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: clearguide-studio-store-package
+          path: dist/clearguide-studio-v*.zip
+          if-no-files-found: error
+          retention-days: 14
