@@ -12,6 +12,7 @@ This file is the source of truth for Chrome Web Store submission metadata and re
 - **Developer account registration / fee / email verification / 2-Step Verification:** USER ACTION REQUIRED
 - **Privacy policy:** READY IN REPO; public main-branch URL available after merge
 - **Screenshots / promo assets:** PENDING
+- **Brand/name collision review:** PENDING
 - **Developer Dashboard upload:** PENDING
 
 ## Product identity
@@ -141,11 +142,13 @@ Store ZIP must contain only runtime extension files:
 
 Do not include repository metadata, internal docs, SDK demos, development notes, or `CHROMEWEBSTORE.md` in the uploaded ZIP.
 
-Use:
+Use locally:
 
 ```bash
 python scripts/package_store.py
 ```
+
+Or use the GitHub Actions artifact named `clearguide-studio-store-package` produced by the release validation workflow.
 
 ## Manual first-publish sequence
 
@@ -156,9 +159,10 @@ python scripts/package_store.py
 5. Provide a live privacy-policy URL.
 6. Fill the Privacy practices tab so it exactly matches `PRIVACY.md`.
 7. Upload screenshots/assets.
-8. Configure distribution visibility/countries.
-9. Submit for review.
-10. After approval, record the Store item ID and URL here.
+8. Confirm the product name/brand is cleared for the intended distribution regions.
+9. Configure distribution visibility/countries.
+10. Submit for review.
+11. After approval, record the Store item ID and URL here.
 
 ## Release mapping
 
