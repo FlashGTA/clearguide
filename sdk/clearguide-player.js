@@ -157,7 +157,7 @@ class ClearGuidePlayer {
     }
 
     startTicker() {
-        if (!this.tickerId) this.tick();
+        if (!this.tickerId && this.trackingElement) this.tick();
     }
 
     stopTicker() {
@@ -168,14 +168,23 @@ class ClearGuidePlayer {
     }
 
     tick() {
-        if (this.overlay && this.trackingElement) {
-            const isVisible = !!(this.trackingElement.offsetWidth || this.trackingElement.offsetHeight || this.trackingElement.getClientRects().length);
-            if (isVisible) {
-                this.updateGuideHighlight(this.trackingElement);
-            } else {
-                this.hideVisuals();
-            }
+        if (!this.overlay || !this.trackingElement) {
+            this.tickerId = null;
+            return;
         }
+
+        const isVisible = !!(
+            this.trackingElement.offsetWidth
+            || this.trackingElement.offsetHeight
+            || this.trackingElement.getClientRects().length
+        );
+
+        if (isVisible) {
+            this.updateGuideHighlight(this.trackingElement);
+        } else {
+            this.hideVisuals();
+        }
+
         this.tickerId = requestAnimationFrame(this.boundTick);
     }
 
@@ -190,7 +199,7 @@ class ClearGuidePlayer {
         return el;
     }
 
-    renderHighlight() {
+    async renderHighlight() {
         const step = this.workflow.steps[this.currentStep];
         if (!this.overlay) {
             this.overlay = document.createElement('div');
@@ -200,18 +209,26 @@ class ClearGuidePlayer {
         }
 
         if (!step.selector) {
+            this.trackingElement = null;
+            this.stopTicker();
             this.renderTextOnlyUI(step);
             return;
         }
 
-        this.ensureVisibility(step.selector, step.trigger).then(target => {
-            if (!target) { this.renderMissingUI(step); return; }
-            this.trackingElement = target;
-            this.isActionResolved = !step.actionRequired;
-            this.overlay.innerHTML = this.getGuideTemplate(step);
-            this.bindEvents();
-            if (step.actionRequired) this.bindActionListener(step);
-        });
+        const target = await this.ensureVisibility(step.selector, step.trigger);
+        if (!target) {
+            this.trackingElement = null;
+            this.stopTicker();
+            this.renderMissingUI(step);
+            return;
+        }
+
+        this.trackingElement = target;
+        this.isActionResolved = !step.actionRequired;
+        this.overlay.innerHTML = this.getGuideTemplate(step);
+        this.bindEvents();
+        if (step.actionRequired) this.bindActionListener(step);
+        this.startTicker();
     }
 
     renderTextOnlyUI(step) {
