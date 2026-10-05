@@ -109,9 +109,9 @@ SECURITY.md
 
 ## License
 
-현재 저장소의 소프트웨어 라이선스는 **PolyForm Noncommercial 1.0.0**입니다. 따라서 소스는 공개되어 있지만 상업적 사용에는 제한이 있습니다.
+ClearGuide 소프트웨어는 **Apache License 2.0**으로 공개됩니다. 수정·재배포·상업적 활용을 포함한 오픈소스 사용은 Apache-2.0 조건을 따릅니다.
 
-일반적인 오픈소스 프로젝트로 전환하여 상업적 재사용까지 허용하려면 Apache-2.0 등으로 별도의 라이선스 결정을 해야 합니다. 브랜드·로고 정책은 [TRADEMARK.md](./TRADEMARK.md)에서 별도로 관리합니다.
+ClearGuide 이름·로고 등 브랜드 자산은 소프트웨어 라이선스와 별개이며 [TRADEMARK.md](./TRADEMARK.md)를 따릅니다.
 
 ## Contributing
 
