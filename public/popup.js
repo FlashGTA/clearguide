@@ -286,13 +286,16 @@ async function handleImport(event) {
 
         for (const workflow of workflows) {
             validateImportedWorkflow(workflow);
-            await chrome.runtime.sendMessage({
+            const result = await chrome.runtime.sendMessage({
                 action: 'saveGlobalWorkflow',
                 workflow: {
                     ...workflow,
                     schemaVersion: workflow.schemaVersion || '1.0'
                 }
             });
+            if (!result?.success) {
+                throw new Error(result?.error || 'GUIDE_IMPORT_REJECTED');
+            }
         }
 
         await loadWorkflows();
@@ -310,11 +313,40 @@ function validateImportedWorkflow(workflow) {
     if (!workflow.id || !workflow.name) throw new Error('MISSING_ID_OR_NAME');
     if (!Array.isArray(workflow.steps) || workflow.steps.length === 0) throw new Error('MISSING_STEPS');
 
+    if (workflow.originUrl && !isSafeHttpUrl(workflow.originUrl)) {
+        throw new Error('INVALID_ORIGIN_URL');
+    }
+
     for (const step of workflow.steps) {
         if (!step || typeof step !== 'object' || !step.message || !step.urlPattern) {
             throw new Error('INVALID_STEP');
         }
+
+        if (!isSafeGuidePattern(step.urlPattern)) {
+            throw new Error('INVALID_STEP_URL');
+        }
+
+        if (step.selector != null && typeof step.selector !== 'string') {
+            throw new Error('INVALID_SELECTOR');
+        }
     }
+}
+
+function isSafeHttpUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+function isSafeGuidePattern(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    if (value.trim() === '*') return true;
+    if (/^https?:\/\//iu.test(value.trim())) return true;
+    return /^[a-zA-Z0-9_./*-]+$/u.test(value.trim());
 }
 
 async function clearAll() {
