@@ -47,3 +47,10 @@ Schema changes require:
 ## Pull request scope
 
 Prefer small PRs. Product strategy and private roadmap material should remain in `FlashGTA/ClearView_AI`; this public repository should contain what contributors need to build, test, and release ClearGuide.
+
+
+## Contribution license
+
+Unless explicitly stated otherwise, contributions submitted for inclusion in ClearGuide are provided under the repository's **Apache License 2.0**, consistent with Section 5 of that license.
+
+The software license does not grant trademark rights to the ClearGuide name or logo.
