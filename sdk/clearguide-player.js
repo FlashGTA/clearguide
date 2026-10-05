@@ -5,7 +5,7 @@
  */
 
 class ClearGuidePlayer {
-    static VERSION = "1.1.0";
+    static VERSION = "1.3.0";
     constructor() {
         this.workflow = null;
         this.currentStep = 0;
@@ -39,13 +39,56 @@ class ClearGuidePlayer {
     }
 
     /**
+     * Guide Template 로드.
+     * 객체를 직접 전달하거나 같은 출처/CORS가 허용된 JSON URL을 전달할 수 있습니다.
+     */
+    async load(source) {
+        const workflow = typeof source === 'string'
+            ? await this.fetchWorkflow(source)
+            : source;
+
+        this.validateWorkflow(workflow);
+        return workflow;
+    }
+
+    async fetchWorkflow(url) {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) {
+            throw new Error(`ClearGuide template load failed: HTTP ${response.status}`);
+        }
+        return response.json();
+    }
+
+    validateWorkflow(workflow) {
+        if (!workflow || typeof workflow !== 'object') {
+            throw new Error('ClearGuide template must be an object.');
+        }
+        if (!Array.isArray(workflow.steps) || workflow.steps.length === 0) {
+            throw new Error('ClearGuide template requires at least one step.');
+        }
+        for (const step of workflow.steps) {
+            if (!step || !step.message || !step.urlPattern) {
+                throw new Error('Each ClearGuide step requires message and urlPattern.');
+            }
+        }
+    }
+
+    /**
      * 워크플로우 실행
      */
     play(workflow) {
-        if (!workflow || !workflow.steps) return;
+        this.validateWorkflow(workflow);
         this.workflow = workflow;
         this.currentStep = 0;
         this.startGuide();
+    }
+
+    /**
+     * JSON URL을 로드한 뒤 즉시 실행합니다.
+     */
+    async playFromUrl(url) {
+        const workflow = await this.load(url);
+        this.play(workflow);
     }
 
     /**
