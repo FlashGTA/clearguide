@@ -81,8 +81,9 @@ Store-affecting changes include:
 ## Permission policy
 
 - request the narrowest permissions possible
-- prefer `activeTab` for user-invoked current-tab access
+- if code reads `tab.url` / `tab.title`, follow the Chrome extension guidance and declare/justify `tabs`
 - use runtime optional host permissions for author-selected sites
+- do not replace runtime site approval with required `<all_urls>` access
 - do not restore static `<all_urls>` injection without a documented requirement and review
 - keep the Player free of Chrome Extension permissions
 
