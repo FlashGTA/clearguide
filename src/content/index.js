@@ -84,11 +84,14 @@ class ClearViewEngine {
     }
 
     // 도메인별 설정 (폴백)
-    chrome.runtime.sendMessage({ action: "getConfig" }).then(response => {
-      if (response && response.config && !this.config) {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: "getConfig" });
+      if (response?.config && !this.config) {
         this.config = response.config;
       }
-    }).catch(() => { });
+    } catch {
+      // 현재 탭이 지원되지 않는 페이지면 폴백 설정을 생략합니다.
+    }
 
     // 3. 현재 페이지용 가이드 검색 (Quick Start 전용)
     setTimeout(() => {
@@ -634,7 +637,7 @@ class ClearViewEngine {
     return el;
   }
 
-  renderHighlight() {
+  async renderHighlight() {
     if (this.isPaused) return;
     const step = this.config.steps[this.currentStep];
 
@@ -645,12 +648,12 @@ class ClearViewEngine {
       return;
     }
 
-    this.ensureVisibility(step.selector, step.trigger).then(target => {
-      if (!target) { this.renderMissingUI(step); return; }
-      this.trackingElement = target;
+    const target = await this.ensureVisibility(step.selector, step.trigger);
+    if (!target) { this.renderMissingUI(step); return; }
+    this.trackingElement = target;
 
-      // 최상단 노출을 위한 내비게이션 바 z-index 강제 및 order 조정
-      this.overlay.innerHTML = `
+    // 최상단 노출을 위한 내비게이션 바 z-index 강제 및 order 조정
+    this.overlay.innerHTML = `
         <div id="cv-spotlight" style="
           position: fixed; pointer-events: none;
           border: 4px solid #3b82f6; border-radius: 8px;
@@ -690,11 +693,10 @@ class ClearViewEngine {
           "></div>
         </div>
       `;
-      this.shadowRoot.querySelector('#cv-next').addEventListener('click', () => this.moveStep(1));
-      this.shadowRoot.querySelector('#cv-prev').addEventListener('click', () => this.moveStep(-1));
-      this.shadowRoot.querySelector('#cv-stop').addEventListener('click', () => this.exitGuide());
-      this.shadowRoot.querySelector('#cv-act').addEventListener('click', () => target.click());
-    });
+    this.shadowRoot.querySelector('#cv-next').addEventListener('click', () => this.moveStep(1));
+    this.shadowRoot.querySelector('#cv-prev').addEventListener('click', () => this.moveStep(-1));
+    this.shadowRoot.querySelector('#cv-stop').addEventListener('click', () => this.exitGuide());
+    this.shadowRoot.querySelector('#cv-act').addEventListener('click', () => target.click());
   }
 
   renderTextOnlyUI(step) {
