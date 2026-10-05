@@ -232,17 +232,16 @@ class ClearViewEngine {
       this.updatePickerHighlight(this.lastHoveredElement);
       active = true;
     }
-    // overlay가 존재하면 가이드가 활성화된 상태이므로 trackingElement가 없어도 ticker 유지
-    if (this.overlay) {
-      if (this.trackingElement) {
-        // 요소가 여전히 DOM에 있고 표시 중인지 확인
-        const isVisible = !!(this.trackingElement.offsetWidth || this.trackingElement.offsetHeight || this.trackingElement.getClientRects().length);
-        if (isVisible) {
-          this.updateGuideHighlight(this.trackingElement);
-        } else {
-          // 요소가 사라졌거나 숨겨진 경우 UI 일시 중지 처리
-          this.hideVisuals();
-        }
+    if (this.overlay && this.trackingElement) {
+      const isVisible = !!(
+        this.trackingElement.offsetWidth
+        || this.trackingElement.offsetHeight
+        || this.trackingElement.getClientRects().length
+      );
+      if (isVisible) {
+        this.updateGuideHighlight(this.trackingElement);
+      } else {
+        this.hideVisuals();
       }
       active = true;
     }
