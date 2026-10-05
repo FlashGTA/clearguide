@@ -1,0 +1,56 @@
+name: Validate release baseline
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate manifest, guide contract, and runtime boundaries
+        run: node scripts/validate_release.mjs
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Chrome Web Store package
+        run: python scripts/package_store.py
+
+      - name: Inspect package
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          packages = sorted(Path("dist").glob("clearguide-studio-v*.zip"))
+          if len(packages) != 1:
+              raise SystemExit(f"expected exactly one package, found {len(packages)}")
+
+          with ZipFile(packages[0]) as archive:
+              names = set(archive.namelist())
+              if "manifest.json" not in names:
+                  raise SystemExit("manifest.json is not at ZIP root")
+              forbidden = [name for name in names if name.startswith(("docs/", "sdk/", ".github/", "scripts/"))]
+              if forbidden:
+                  raise SystemExit(f"development-only files found in package: {forbidden[:5]}")
+
+          print(f"Store package validation: PASS ({packages[0]})")
+          PY
