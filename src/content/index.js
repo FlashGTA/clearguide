@@ -1,4 +1,7 @@
-console.log("[ClearView AI] Content Script Injected (Connect++ Z-Index Fix)");
+(() => {
+  if (globalThis.__clearGuideStudioEngine) return;
+
+console.log("[ClearGuide Studio] Content script injected");
 
 class ClearViewEngine {
   constructor() {
@@ -30,6 +33,10 @@ class ClearViewEngine {
     // 1. 메시지 리스너 등록
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log("[ClearGuide] Received message:", request.action);
+      if (request.action === "ping") {
+        sendResponse({ ready: true });
+        return;
+      }
       if (request.action === "activate") {
         this.startGuide();
       } else if (request.action === "startPicker") {
@@ -77,11 +84,14 @@ class ClearViewEngine {
     }
 
     // 도메인별 설정 (폴백)
-    chrome.runtime.sendMessage({ action: "getConfig" }).then(response => {
-      if (response && response.config && !this.config) {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: "getConfig" });
+      if (response?.config && !this.config) {
         this.config = response.config;
       }
-    }).catch(() => { });
+    } catch {
+      // 현재 탭이 지원되지 않는 페이지면 폴백 설정을 생략합니다.
+    }
 
     // 3. 현재 페이지용 가이드 검색 (Quick Start 전용)
     setTimeout(() => {
@@ -120,8 +130,8 @@ class ClearViewEngine {
       pointer-events: auto; font-family: sans-serif; transition: all 0.3s;
     `;
 
-    let buttonsHtml = workflows.map(w => `
-      <button class="cv-quick-play" data-id="${w.id}" style="
+    const buttonsHtml = workflows.map((w, index) => `
+      <button class="cv-quick-play" data-index="${index}" style="
         background: #3b82f6; border: none; color: white; padding: 6px 14px;
         border-radius: 15px; font-size: 11px; font-weight: bold; cursor: pointer;
         white-space: nowrap; transition: all 0.2s;
@@ -158,8 +168,8 @@ class ClearViewEngine {
     // 이벤트 바인딩
     this.shadowRoot.querySelectorAll('.cv-quick-play').forEach(btn => {
       btn.addEventListener('click', () => {
-        const wfId = btn.getAttribute('data-id');
-        const workflow = workflows.find(w => w.id === wfId);
+        const workflowIndex = Number(btn.getAttribute('data-index'));
+        const workflow = Number.isInteger(workflowIndex) ? workflows[workflowIndex] : null;
         if (workflow) {
           bar.remove();
           this.globalWorkflow = workflow;
@@ -222,17 +232,16 @@ class ClearViewEngine {
       this.updatePickerHighlight(this.lastHoveredElement);
       active = true;
     }
-    // overlay가 존재하면 가이드가 활성화된 상태이므로 trackingElement가 없어도 ticker 유지
-    if (this.overlay) {
-      if (this.trackingElement) {
-        // 요소가 여전히 DOM에 있고 표시 중인지 확인
-        const isVisible = !!(this.trackingElement.offsetWidth || this.trackingElement.offsetHeight || this.trackingElement.getClientRects().length);
-        if (isVisible) {
-          this.updateGuideHighlight(this.trackingElement);
-        } else {
-          // 요소가 사라졌거나 숨겨진 경우 UI 일시 중지 처리
-          this.hideVisuals();
-        }
+    if (this.overlay && this.trackingElement) {
+      const isVisible = !!(
+        this.trackingElement.offsetWidth
+        || this.trackingElement.offsetHeight
+        || this.trackingElement.getClientRects().length
+      );
+      if (isVisible) {
+        this.updateGuideHighlight(this.trackingElement);
+      } else {
+        this.hideVisuals();
       }
       active = true;
     }
@@ -287,6 +296,29 @@ class ClearViewEngine {
     function closeDragElement() {
       document.onmouseup = null;
       document.onmousemove = null;
+    }
+  }
+
+  safeQuerySelector(selector) {
+    if (typeof selector !== 'string' || !selector.trim()) return null;
+    try {
+      return document.querySelector(selector);
+    } catch {
+      console.warn("[ClearGuide] Invalid selector ignored:", selector);
+      return null;
+    }
+  }
+
+  safeNavigationUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    if (value.includes('*')) return null;
+
+    try {
+      const url = new URL(value, window.location.href);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+      return url.toString();
+    } catch {
+      return null;
     }
   }
 
@@ -583,6 +615,7 @@ class ClearViewEngine {
 
     const domain = window.location.hostname;
     const workflow = {
+      schemaVersion: "1.0",
       id: `wf_${Date.now()}`,
       name: name,
       domain: domain,
@@ -614,7 +647,7 @@ class ClearViewEngine {
   }
 
   async ensureVisibility(selector, trigger) {
-    const el = document.querySelector(selector);
+    const el = this.safeQuerySelector(selector);
     if (!el) return null;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     await new Promise(r => setTimeout(r, 600));
@@ -626,7 +659,7 @@ class ClearViewEngine {
     return el;
   }
 
-  renderHighlight() {
+  async renderHighlight() {
     if (this.isPaused) return;
     const step = this.config.steps[this.currentStep];
 
@@ -637,12 +670,12 @@ class ClearViewEngine {
       return;
     }
 
-    this.ensureVisibility(step.selector, step.trigger).then(target => {
-      if (!target) { this.renderMissingUI(step); return; }
-      this.trackingElement = target;
+    const target = await this.ensureVisibility(step.selector, step.trigger);
+    if (!target) { this.renderMissingUI(step); return; }
+    this.trackingElement = target;
 
-      // 최상단 노출을 위한 내비게이션 바 z-index 강제 및 order 조정
-      this.overlay.innerHTML = `
+    // 최상단 노출을 위한 내비게이션 바 z-index 강제 및 order 조정
+    this.overlay.innerHTML = `
         <div id="cv-spotlight" style="
           position: fixed; pointer-events: none;
           border: 4px solid #3b82f6; border-radius: 8px;
@@ -682,11 +715,10 @@ class ClearViewEngine {
           "></div>
         </div>
       `;
-      this.shadowRoot.querySelector('#cv-next').addEventListener('click', () => this.moveStep(1));
-      this.shadowRoot.querySelector('#cv-prev').addEventListener('click', () => this.moveStep(-1));
-      this.shadowRoot.querySelector('#cv-stop').addEventListener('click', () => this.exitGuide());
-      this.shadowRoot.querySelector('#cv-act').addEventListener('click', () => target.click());
-    });
+    this.shadowRoot.querySelector('#cv-next').addEventListener('click', () => this.moveStep(1));
+    this.shadowRoot.querySelector('#cv-prev').addEventListener('click', () => this.moveStep(-1));
+    this.shadowRoot.querySelector('#cv-stop').addEventListener('click', () => this.exitGuide());
+    this.shadowRoot.querySelector('#cv-act').addEventListener('click', () => target.click());
   }
 
   renderTextOnlyUI(step) {
@@ -791,10 +823,15 @@ class ClearViewEngine {
       chrome.runtime.sendMessage({ action: "updateWorkflowStep", stepIndex: this.currentStep }, () => {
         const nextStep = this.config.steps[this.currentStep];
         if (!this.urlMatchesPattern(window.location.href, nextStep.urlPattern)) {
-          alert("다음 단계 수행을 위해 페이지를 이동합니다.");
-          window.location.href = nextStep.urlPattern;
+          const targetUrl = this.safeNavigationUrl(nextStep.urlPattern);
+          if (!targetUrl) {
+            console.warn("[ClearGuide] Blocked unsafe or non-navigable URL pattern:", nextStep.urlPattern);
+            this.renderMissingUI({ ...nextStep, label: nextStep.label || "안전한 이동 URL이 필요합니다" });
+            return;
+          }
+          window.location.assign(targetUrl);
         } else {
-          this.renderHighlight();
+          void this.renderHighlight();
         }
       });
     } else if (nextIdx >= this.config.steps.length) {
@@ -804,4 +841,5 @@ class ClearViewEngine {
   }
 }
 
-new ClearViewEngine();
+globalThis.__clearGuideStudioEngine = new ClearViewEngine();
+})();

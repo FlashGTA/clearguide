@@ -5,7 +5,7 @@
  */
 
 class ClearGuidePlayer {
-    static VERSION = "1.1.0";
+    static VERSION = "1.3.0";
     constructor() {
         this.workflow = null;
         this.currentStep = 0;
@@ -39,13 +39,56 @@ class ClearGuidePlayer {
     }
 
     /**
+     * Guide Template 로드.
+     * 객체를 직접 전달하거나 같은 출처/CORS가 허용된 JSON URL을 전달할 수 있습니다.
+     */
+    async load(source) {
+        const workflow = typeof source === 'string'
+            ? await this.fetchWorkflow(source)
+            : source;
+
+        this.validateWorkflow(workflow);
+        return workflow;
+    }
+
+    async fetchWorkflow(url) {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) {
+            throw new Error(`ClearGuide template load failed: HTTP ${response.status}`);
+        }
+        return response.json();
+    }
+
+    validateWorkflow(workflow) {
+        if (!workflow || typeof workflow !== 'object') {
+            throw new Error('ClearGuide template must be an object.');
+        }
+        if (!Array.isArray(workflow.steps) || workflow.steps.length === 0) {
+            throw new Error('ClearGuide template requires at least one step.');
+        }
+        for (const step of workflow.steps) {
+            if (!step || !step.message || !step.urlPattern) {
+                throw new Error('Each ClearGuide step requires message and urlPattern.');
+            }
+        }
+    }
+
+    /**
      * 워크플로우 실행
      */
     play(workflow) {
-        if (!workflow || !workflow.steps) return;
+        this.validateWorkflow(workflow);
         this.workflow = workflow;
         this.currentStep = 0;
         this.startGuide();
+    }
+
+    /**
+     * JSON URL을 로드한 뒤 즉시 실행합니다.
+     */
+    async playFromUrl(url) {
+        const workflow = await this.load(url);
+        this.play(workflow);
     }
 
     /**
@@ -114,7 +157,7 @@ class ClearGuidePlayer {
     }
 
     startTicker() {
-        if (!this.tickerId) this.tick();
+        if (!this.tickerId && this.trackingElement) this.tick();
     }
 
     stopTicker() {
@@ -125,19 +168,28 @@ class ClearGuidePlayer {
     }
 
     tick() {
-        if (this.overlay && this.trackingElement) {
-            const isVisible = !!(this.trackingElement.offsetWidth || this.trackingElement.offsetHeight || this.trackingElement.getClientRects().length);
-            if (isVisible) {
-                this.updateGuideHighlight(this.trackingElement);
-            } else {
-                this.hideVisuals();
-            }
+        if (!this.overlay || !this.trackingElement) {
+            this.tickerId = null;
+            return;
         }
+
+        const isVisible = !!(
+            this.trackingElement.offsetWidth
+            || this.trackingElement.offsetHeight
+            || this.trackingElement.getClientRects().length
+        );
+
+        if (isVisible) {
+            this.updateGuideHighlight(this.trackingElement);
+        } else {
+            this.hideVisuals();
+        }
+
         this.tickerId = requestAnimationFrame(this.boundTick);
     }
 
     async ensureVisibility(selector, trigger) {
-        const el = document.querySelector(selector);
+        const el = this.safeQuerySelector(selector);
         if (!el) return null;
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await new Promise(r => setTimeout(r, 600));
@@ -147,7 +199,7 @@ class ClearGuidePlayer {
         return el;
     }
 
-    renderHighlight() {
+    async renderHighlight() {
         const step = this.workflow.steps[this.currentStep];
         if (!this.overlay) {
             this.overlay = document.createElement('div');
@@ -157,18 +209,26 @@ class ClearGuidePlayer {
         }
 
         if (!step.selector) {
+            this.trackingElement = null;
+            this.stopTicker();
             this.renderTextOnlyUI(step);
             return;
         }
 
-        this.ensureVisibility(step.selector, step.trigger).then(target => {
-            if (!target) { this.renderMissingUI(step); return; }
-            this.trackingElement = target;
-            this.isActionResolved = !step.actionRequired;
-            this.overlay.innerHTML = this.getGuideTemplate(step);
-            this.bindEvents();
-            if (step.actionRequired) this.bindActionListener(step);
-        });
+        const target = await this.ensureVisibility(step.selector, step.trigger);
+        if (!target) {
+            this.trackingElement = null;
+            this.stopTicker();
+            this.renderMissingUI(step);
+            return;
+        }
+
+        this.trackingElement = target;
+        this.isActionResolved = !step.actionRequired;
+        this.overlay.innerHTML = this.getGuideTemplate(step);
+        this.bindEvents();
+        if (step.actionRequired) this.bindActionListener(step);
+        this.startTicker();
     }
 
     renderTextOnlyUI(step) {
@@ -273,10 +333,15 @@ class ClearGuidePlayer {
 
             const nextStep = this.workflow.steps[this.currentStep];
             if (!this.urlMatchesPattern(window.location.href, nextStep.urlPattern)) {
-                alert("다음 단계 수행을 위해 페이지를 이동합니다.");
-                window.location.href = nextStep.urlPattern;
+                const targetUrl = this.safeNavigationUrl(nextStep.urlPattern);
+                if (!targetUrl) {
+                    console.warn("[ClearGuide Player] Blocked unsafe or non-navigable URL pattern:", nextStep.urlPattern);
+                    this.renderMissingUI({ ...nextStep, label: nextStep.label || "안전한 이동 URL이 필요합니다" });
+                    return;
+                }
+                window.location.assign(targetUrl);
             } else {
-                this.renderHighlight();
+                void this.renderHighlight();
                 if (this.config.showDashboard) this.renderDashboard();
             }
         } else if (nextIdx >= this.workflow.steps.length) {
@@ -546,6 +611,27 @@ class ClearGuidePlayer {
 
         const quickBar = this.shadowRoot.querySelector('#cv-quick-bar');
         if (quickBar) quickBar.style.display = this.isGuideHidden ? 'none' : 'flex';
+    }
+
+    safeQuerySelector(selector) {
+        if (typeof selector !== 'string' || !selector.trim()) return null;
+        try {
+            return document.querySelector(selector);
+        } catch {
+            console.warn("[ClearGuide Player] Invalid selector ignored:", selector);
+            return null;
+        }
+    }
+
+    safeNavigationUrl(value) {
+        if (typeof value !== 'string' || !value.trim() || value.includes('*')) return null;
+        try {
+            const url = new URL(value, window.location.href);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+            return url.toString();
+        } catch {
+            return null;
+        }
     }
 
     urlMatchesPattern(url, pattern) {

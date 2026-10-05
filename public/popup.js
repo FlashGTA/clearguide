@@ -1,5 +1,5 @@
 /**
- * ClearGuide AI - Popup Logic
+ * ClearGuide Studio - Popup Logic
  */
 
 const elements = {
@@ -10,8 +10,8 @@ const elements = {
     importFile: document.getElementById('import-file'),
     exportAllBtn: document.getElementById('export-all'),
     clearAllBtn: document.getElementById('clear-all'),
+    status: document.getElementById('status'),
 
-    // Preview
     previewPanel: document.getElementById('preview-panel'),
     previewTitle: document.getElementById('preview-title'),
     previewMeta: document.getElementById('preview-meta'),
@@ -24,20 +24,28 @@ let currentTab = null;
 let allWorkflows = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 현재 탭 정보 가져오기
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    currentTab = tab;
+    currentTab = tab || null;
 
-    // 이벤트 바인딩
     bindEvents();
-
-    // 워크플로우 로드
     await loadWorkflows();
 });
 
 function bindEvents() {
-    elements.startPickupBtn.addEventListener('click', () => {
-        chrome.tabs.sendMessage(currentTab.id, { action: "startPicker" });
+    elements.startPickupBtn.addEventListener('click', async () => {
+        const origin = toOriginPattern(currentTab?.url);
+        if (!origin) {
+            showStatus('이 페이지에서는 가이드 제작을 시작할 수 없습니다.', true);
+            return;
+        }
+
+        if (!(await ensureOriginsGranted([origin]))) {
+            showStatus('가이드를 만들려면 현재 사이트 접근 권한이 필요합니다.', true);
+            return;
+        }
+
+        await ensureContentScript(currentTab.id);
+        await chrome.tabs.sendMessage(currentTab.id, { action: 'startPicker' });
         window.close();
     });
 
@@ -50,85 +58,80 @@ function bindEvents() {
         elements.previewPanel.style.display = 'none';
     });
 
-    elements.previewPlay.addEventListener('click', () => {
+    elements.previewPlay.addEventListener('click', async () => {
         const workflowId = elements.previewPlay.dataset.id;
-        const workflow = allWorkflows.find(w => w.id === workflowId);
-        if (workflow) playWorkflow(workflow);
+        const workflow = allWorkflows.find((item) => item.id === workflowId);
+        if (workflow) await playWorkflow(workflow);
     });
 }
 
 async function loadWorkflows() {
-    const response = await chrome.runtime.sendMessage({ action: "getWorkflows" });
+    const response = await chrome.runtime.sendMessage({ action: 'getWorkflows' });
     allWorkflows = response.workflows || [];
     renderWorkflows();
 }
 
 function renderWorkflows() {
-    const domain = new URL(currentTab.url).hostname;
+    const currentDomain = hostnameFromUrl(currentTab?.url);
+    const pageMatch = allWorkflows.filter((workflow) => workflow.domain === currentDomain);
+    const others = allWorkflows.filter((workflow) => workflow.domain !== currentDomain);
 
-    const pageMatch = allWorkflows.filter(w => w.domain === domain);
-    const others = allWorkflows.filter(w => w.domain !== domain);
-
-    // 현재 페이지 렌더링
     if (pageMatch.length > 0) {
-        elements.currentList.innerHTML = '';
-        pageMatch.forEach(w => elements.currentList.appendChild(createWorkflowItem(w, true)));
+        elements.currentList.replaceChildren();
+        pageMatch.forEach((workflow) => elements.currentList.appendChild(createWorkflowItem(workflow)));
     } else {
-        elements.currentList.innerHTML = `<div class="empty-state">현재 페이지를 위한 가이드가 없습니다.</div>`;
+        elements.currentList.innerHTML = '<div class="empty-state">현재 페이지를 위한 가이드가 없습니다.</div>';
     }
 
-    // 기타 페이지 렌더링
     if (others.length > 0) {
-        elements.otherList.innerHTML = '';
-        others.forEach(w => elements.otherList.appendChild(createWorkflowItem(w, false)));
+        elements.otherList.replaceChildren();
+        others.forEach((workflow) => elements.otherList.appendChild(createWorkflowItem(workflow)));
     } else {
-        elements.otherList.innerHTML = `<div class="empty-state">보관함이 비어있습니다.</div>`;
+        elements.otherList.innerHTML = '<div class="empty-state">보관함이 비어있습니다.</div>';
     }
 }
 
-function createWorkflowItem(workflow, isContextual) {
+function createWorkflowItem(workflow) {
     const item = document.createElement('div');
     item.className = 'workflow-item';
 
     const stepCount = workflow.steps?.length || 0;
-
     item.innerHTML = `
-    <div class="wf-header">
-      <div class="wf-name">${escapeHtml(workflow.name)}</div>
-      <div class="wf-meta">${stepCount} steps</div>
-    </div>
-    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">${workflow.domain}</div>
-    <div class="wf-actions">
-      <button class="icon-btn play" title="수행하기">▶</button>
-      <button class="icon-btn preview" title="미리보기">👁</button>
-      <button class="icon-btn export" title="내보내기">📤</button>
-      <button class="icon-btn delete" title="삭제">🗑</button>
-    </div>
-  `;
+      <div class="wf-header">
+        <div class="wf-name">${escapeHtml(workflow.name)}</div>
+        <div class="wf-meta">${stepCount} steps</div>
+      </div>
+      <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">${escapeHtml(workflow.domain || '')}</div>
+      <div class="wf-actions">
+        <button class="icon-btn play" title="미리보기 실행" aria-label="미리보기 실행">▶</button>
+        <button class="icon-btn preview" title="가이드 내용 보기" aria-label="가이드 내용 보기">👁</button>
+        <button class="icon-btn export" title="JSON 내보내기" aria-label="JSON 내보내기">📤</button>
+        <button class="icon-btn delete" title="삭제" aria-label="삭제">🗑</button>
+      </div>
+    `;
 
-    // 이벤트 바인딩
-    item.addEventListener('click', (e) => {
-        if (!e.target.closest('.icon-btn')) showPreview(workflow);
+    item.addEventListener('click', (event) => {
+        if (!event.target.closest('.icon-btn')) showPreview(workflow);
     });
 
-    item.querySelector('.play').addEventListener('click', (e) => {
-        e.stopPropagation();
-        playWorkflow(workflow);
+    item.querySelector('.play').addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await playWorkflow(workflow);
     });
 
-    item.querySelector('.preview').addEventListener('click', (e) => {
-        e.stopPropagation();
+    item.querySelector('.preview').addEventListener('click', (event) => {
+        event.stopPropagation();
         showPreview(workflow);
     });
 
-    item.querySelector('.export').addEventListener('click', (e) => {
-        e.stopPropagation();
+    item.querySelector('.export').addEventListener('click', (event) => {
+        event.stopPropagation();
         exportWorkflow(workflow);
     });
 
-    item.querySelector('.delete').addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteWorkflow(workflow.id);
+    item.querySelector('.delete').addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await deleteWorkflow(workflow.id);
     });
 
     return item;
@@ -136,108 +139,249 @@ function createWorkflowItem(workflow, isContextual) {
 
 function showPreview(workflow) {
     elements.previewTitle.innerText = workflow.name;
-    elements.previewMeta.innerText = `${workflow.domain} · ${workflow.steps.length} steps`;
+    elements.previewMeta.innerText = `${workflow.domain || '여러 사이트'} · ${workflow.steps.length} steps`;
     elements.previewPlay.dataset.id = workflow.id;
 
-    elements.previewList.innerHTML = workflow.steps.map((s, i) => `
-    <div class="step-item">
-      <div class="step-num">${i + 1}</div>
-      <div style="flex: 1;">
-        <div class="step-msg">${escapeHtml(s.message)}</div>
-        <div class="step-label">${escapeHtml(s.label)}</div>
+    elements.previewList.innerHTML = workflow.steps.map((step, index) => `
+      <div class="step-item">
+        <div class="step-num">${index + 1}</div>
+        <div style="flex: 1;">
+          <div class="step-msg">${escapeHtml(step.message)}</div>
+          <div class="step-label">${escapeHtml(step.label)}</div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 
     elements.previewPanel.style.display = 'flex';
 }
 
 async function playWorkflow(workflow) {
-    // 해당 도메인이 아닌 경우 이동 확인
-    const currentDomain = new URL(currentTab.url).hostname;
-    if (workflow.domain !== currentDomain) {
-        if (confirm("이 가이드는 다른 사이트용입니다. 이동할까요?")) {
-            chrome.tabs.update(currentTab.id, { url: workflow.originUrl || `https://${workflow.domain}` });
-            // 이동 후 자동 시작을 위해 세션 저장 필요 (이미 background에서 처리 중일 수 있음)
-        } else {
-            return;
-        }
+    const origins = collectWorkflowOrigins(workflow);
+    if (!(await ensureOriginsGranted(origins))) {
+        showStatus('이 가이드의 대상 사이트 권한이 승인되지 않았습니다.', true);
+        return;
     }
 
-    await chrome.runtime.sendMessage({ action: "startGlobalWorkflow", workflow });
-
-    // 현재 도메인과 일치하면 즉시 실행 메시지 전송
-    if (workflow.domain === currentDomain) {
-        chrome.tabs.sendMessage(currentTab.id, {
-            action: "resumeWorkflow",
-            workflow: workflow,
-            currentStepIndex: 0
-        }).catch(() => { }); // 컨텐츠 스크립트 미준비 시 무시
+    const currentOrigin = toOriginPattern(currentTab?.url);
+    if (currentOrigin && origins.includes(currentOrigin)) {
+        await ensureContentScript(currentTab.id);
     }
+
+    const currentDomain = hostnameFromUrl(currentTab?.url);
+    if (workflow.domain && workflow.domain !== currentDomain) {
+        if (!confirm('이 가이드는 다른 사이트에서 시작합니다. 이동할까요?')) return;
+
+        await chrome.runtime.sendMessage({ action: 'startGlobalWorkflow', workflow });
+        await chrome.tabs.update(currentTab.id, {
+            url: workflow.originUrl || `https://${workflow.domain}`
+        });
+        window.close();
+        return;
+    }
+
+    await chrome.runtime.sendMessage({ action: 'startGlobalWorkflow', workflow });
+    await chrome.tabs.sendMessage(currentTab.id, {
+        action: 'resumeWorkflow',
+        workflow,
+        currentStepIndex: 0
+    });
 
     window.close();
 }
 
+async function ensureOriginsGranted(origins) {
+    const requested = [...new Set(origins.filter(Boolean))];
+    if (requested.length === 0) return true;
+
+    // Keep permissions.request as the first asynchronous operation in the
+    // user-click flow so Chrome can associate it with the user gesture.
+    const granted = await chrome.permissions.request({ origins: requested });
+    if (!granted) return false;
+
+    const registration = await chrome.runtime.sendMessage({
+        action: 'registerGrantedOrigins',
+        origins: requested
+    });
+    return registration?.success === true;
+}
+
+async function ensureContentScript(tabId) {
+    if (!Number.isInteger(tabId)) return;
+
+    try {
+        await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+        return;
+    } catch {
+        // Not injected in the current document yet.
+    }
+
+    await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['src/content/index.js']
+    });
+}
+
+function collectWorkflowOrigins(workflow) {
+    const values = [
+        workflow.originUrl,
+        ...(workflow.steps || []).map((step) => step.urlPattern)
+    ];
+
+    return [...new Set(values.map(toOriginPattern).filter(Boolean))];
+}
+
+function toOriginPattern(value) {
+    if (typeof value !== 'string' || !value.trim()) return null;
+
+    try {
+        const withoutWildcard = value.trim().replace(/\*/gu, '');
+        const parsed = new URL(withoutWildcard);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+        return `${parsed.protocol}//${parsed.host}/*`;
+    } catch {
+        return null;
+    }
+}
+
+function hostnameFromUrl(value) {
+    if (typeof value !== 'string') return '';
+    try {
+        return new URL(value).hostname;
+    } catch {
+        return '';
+    }
+}
+
 async function deleteWorkflow(id) {
-    if (!confirm("이 시나리오를 삭제하시겠습니까?")) return;
-    await chrome.runtime.sendMessage({ action: "deleteWorkflow", workflowId: id });
+    if (!confirm('이 가이드를 삭제하시겠습니까?')) return;
+    await chrome.runtime.sendMessage({ action: 'deleteWorkflow', workflowId: id });
     await loadWorkflows();
+    showStatus('가이드를 삭제했습니다.');
 }
 
 function exportWorkflow(workflow) {
-    const data = JSON.stringify(workflow, null, 2);
-    downloadFile(data, `clearguide_${workflow.name}.json`);
+    const normalized = {
+        ...workflow,
+        schemaVersion: workflow.schemaVersion || '1.0'
+    };
+    downloadFile(JSON.stringify(normalized, null, 2), `clearguide_${safeFileName(workflow.name)}.json`);
 }
 
-async function exportAll() {
-    const data = JSON.stringify(allWorkflows, null, 2);
-    downloadFile(data, `clearguide_backup_${Date.now()}.json`);
+function exportAll() {
+    const normalized = allWorkflows.map((workflow) => ({
+        ...workflow,
+        schemaVersion: workflow.schemaVersion || '1.0'
+    }));
+    downloadFile(JSON.stringify(normalized, null, 2), `clearguide_backup_${Date.now()}.json`);
 }
 
 async function handleImport(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = JSON.parse(e.target.result);
-            if (Array.isArray(data)) {
-                // 전체 백업인 경우
-                for (const wf of data) {
-                    await chrome.runtime.sendMessage({ action: "saveGlobalWorkflow", workflow: wf });
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const workflows = Array.isArray(data) ? data : [data];
+
+        for (const workflow of workflows) {
+            validateImportedWorkflow(workflow);
+            const result = await chrome.runtime.sendMessage({
+                action: 'saveGlobalWorkflow',
+                workflow: {
+                    ...workflow,
+                    schemaVersion: workflow.schemaVersion || '1.0'
                 }
-            } else {
-                // 단일 워크플로우인 경우
-                await chrome.runtime.sendMessage({ action: "saveGlobalWorkflow", workflow: data });
+            });
+            if (!result?.success) {
+                throw new Error(result?.error || 'GUIDE_IMPORT_REJECTED');
             }
-            await loadWorkflows();
-            alert("불러오기 완료!");
-        } catch (err) {
-            alert("잘못된 파일 형식입니다.");
         }
-    };
-    reader.readAsText(file);
+
+        await loadWorkflows();
+        showStatus('가이드를 불러왔습니다.');
+    } catch (error) {
+        console.error(error);
+        showStatus('가이드 JSON 형식을 확인해주세요.', true);
+    } finally {
+        event.target.value = '';
+    }
+}
+
+function validateImportedWorkflow(workflow) {
+    if (!workflow || typeof workflow !== 'object') throw new Error('INVALID_WORKFLOW');
+    if (!workflow.id || !workflow.name) throw new Error('MISSING_ID_OR_NAME');
+    if (!Array.isArray(workflow.steps) || workflow.steps.length === 0) throw new Error('MISSING_STEPS');
+
+    if (workflow.originUrl && !isSafeHttpUrl(workflow.originUrl)) {
+        throw new Error('INVALID_ORIGIN_URL');
+    }
+
+    for (const step of workflow.steps) {
+        if (!step || typeof step !== 'object' || !step.message || !step.urlPattern) {
+            throw new Error('INVALID_STEP');
+        }
+
+        if (!isSafeGuidePattern(step.urlPattern)) {
+            throw new Error('INVALID_STEP_URL');
+        }
+
+        if (step.selector != null && typeof step.selector !== 'string') {
+            throw new Error('INVALID_SELECTOR');
+        }
+    }
+}
+
+function isSafeHttpUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+function isSafeGuidePattern(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    if (value.trim() === '*') return true;
+    if (/^https?:\/\//iu.test(value.trim())) return true;
+    return /^[a-zA-Z0-9_./*-]+$/u.test(value.trim());
 }
 
 async function clearAll() {
-    if (!confirm("모든 데이터를 초기화하시겠습니까?")) return;
+    if (!confirm('모든 로컬 가이드를 삭제하시겠습니까?')) return;
     await chrome.storage.local.set({ cv_workflows: [] });
+    await chrome.storage.local.remove('active_workflow_session');
     await loadWorkflows();
+    showStatus('로컬 가이드를 모두 삭제했습니다.');
 }
 
 function downloadFile(content, fileName) {
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
     URL.revokeObjectURL(url);
+}
+
+function safeFileName(value) {
+    return String(value || 'guide').replace(/[^a-z0-9가-힣_-]+/giu, '_').slice(0, 80);
+}
+
+function showStatus(message, isError = false) {
+    if (!elements.status) return;
+    elements.status.textContent = message;
+    elements.status.style.display = 'block';
+    elements.status.style.background = isError
+        ? 'rgba(239,68,68,0.15)'
+        : 'rgba(16,185,129,0.15)';
 }
 
 function escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = text || '';
     return div.innerHTML;
 }
