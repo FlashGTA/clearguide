@@ -189,7 +189,7 @@ class ClearGuidePlayer {
     }
 
     async ensureVisibility(selector, trigger) {
-        const el = document.querySelector(selector);
+        const el = this.safeQuerySelector(selector);
         if (!el) return null;
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await new Promise(r => setTimeout(r, 600));
@@ -333,10 +333,15 @@ class ClearGuidePlayer {
 
             const nextStep = this.workflow.steps[this.currentStep];
             if (!this.urlMatchesPattern(window.location.href, nextStep.urlPattern)) {
-                alert("다음 단계 수행을 위해 페이지를 이동합니다.");
-                window.location.href = nextStep.urlPattern;
+                const targetUrl = this.safeNavigationUrl(nextStep.urlPattern);
+                if (!targetUrl) {
+                    console.warn("[ClearGuide Player] Blocked unsafe or non-navigable URL pattern:", nextStep.urlPattern);
+                    this.renderMissingUI({ ...nextStep, label: nextStep.label || "안전한 이동 URL이 필요합니다" });
+                    return;
+                }
+                window.location.assign(targetUrl);
             } else {
-                this.renderHighlight();
+                void this.renderHighlight();
                 if (this.config.showDashboard) this.renderDashboard();
             }
         } else if (nextIdx >= this.workflow.steps.length) {
@@ -606,6 +611,27 @@ class ClearGuidePlayer {
 
         const quickBar = this.shadowRoot.querySelector('#cv-quick-bar');
         if (quickBar) quickBar.style.display = this.isGuideHidden ? 'none' : 'flex';
+    }
+
+    safeQuerySelector(selector) {
+        if (typeof selector !== 'string' || !selector.trim()) return null;
+        try {
+            return document.querySelector(selector);
+        } catch {
+            console.warn("[ClearGuide Player] Invalid selector ignored:", selector);
+            return null;
+        }
+    }
+
+    safeNavigationUrl(value) {
+        if (typeof value !== 'string' || !value.trim() || value.includes('*')) return null;
+        try {
+            const url = new URL(value, window.location.href);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+            return url.toString();
+        } catch {
+            return null;
+        }
     }
 
     urlMatchesPattern(url, pattern) {
