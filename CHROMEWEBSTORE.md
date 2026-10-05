@@ -12,6 +12,7 @@ This file is the source of truth for Chrome Web Store submission metadata and re
 - **Developer account registration / fee / email verification / 2-Step Verification:** USER ACTION REQUIRED
 - **Privacy policy:** READY IN REPO; public main-branch URL available after merge
 - **Screenshots / promo assets:** PENDING
+- **Open-source license:** Apache-2.0 — READY
 - **Brand/name collision review:** PENDING
 - **Developer Dashboard upload:** PENDING
 
@@ -24,6 +25,7 @@ This file is the source of truth for Chrome Web Store submission metadata and re
 - **Manifest version:** 3
 - **Target release:** 0.2.0
 - **Repository:** FlashGTA/clearguide
+- **Software license:** Apache-2.0
 
 ## Single purpose
 
