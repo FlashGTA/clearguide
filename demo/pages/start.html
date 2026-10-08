@@ -1,18 +1,38 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공공서비스 데모 시작</title></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClearGuide · 안내 준비</title>
+  <style>
+    :root{--ink:#10213f;--muted:#63728a;--line:#dce5f1;--blue:#2463eb;--blue-dark:#1949b5;--soft:#eef5ff;--bg:#f5f8fc}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(1120px,calc(100% - 40px));margin:auto}
+    header{height:72px;background:#fff;border-bottom:1px solid var(--line)}.header-inner{height:100%;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:9px;color:var(--ink);font-weight:900;font-size:20px;letter-spacing:-.05em;text-decoration:none}.brand-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--blue);color:white}.brand-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.brand span{color:var(--blue)}.back{color:var(--muted);text-decoration:none;font-size:14px}.back:hover{color:var(--blue)}
+    main{padding:36px 0 70px}.crumb{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;margin-bottom:22px}.crumb strong{color:var(--blue)}.hero{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:28px;align-items:start}.service-card,.guide-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 45px #1d4f9b0d}.service-card{padding:32px}.portal-row{display:flex;align-items:center;gap:12px}.portal-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--soft);color:var(--blue)}.portal-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.portal{font-weight:850}.category{margin-left:auto;color:var(--muted);font-size:12px;background:#f1f5f9;border-radius:999px;padding:5px 9px}.service-card h1{font-size:clamp(29px,4vw,48px);line-height:1.12;letter-spacing:-.06em;margin:24px 0 12px}.service-desc{color:var(--muted);margin:0;max-width:560px}.section-label{font-size:13px;font-weight:850;color:var(--blue);margin:28px 0 12px}.journey{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0;padding:0;list-style:none}.journey li{display:flex;gap:9px;align-items:center;padding:10px 11px;border:1px solid #e7edf5;border-radius:11px;color:#3a4960;font-size:13px}.journey li b{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px;background:var(--soft);color:var(--blue);font-size:11px}.privacy{display:flex;gap:10px;margin-top:24px;padding:13px 14px;border-radius:12px;background:#f0fdf8;color:#176c52;font-size:13px}.privacy svg{width:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .guide-card{overflow:hidden}.guide-head{padding:24px 28px;background:linear-gradient(135deg,#102b61,#1d4fae);color:white}.guide-kicker{display:flex;align-items:center;gap:8px;color:#bcd4ff;font-size:12px;font-weight:800;letter-spacing:.04em}.guide-kicker svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.guide-head h2{font-size:25px;line-height:1.2;letter-spacing:-.04em;margin:13px 0 4px}.guide-head p{color:#d8e5ff;font-size:14px;margin:0}.guide-body{padding:28px}.field-label{display:block;font-size:14px;font-weight:850;margin-bottom:9px}.goal-input{display:block;width:100%;height:52px;border:1px solid #cbd8e8;border-radius:12px;padding:0 15px;color:var(--ink);font:inherit;outline:none;transition:border-color 160ms ease-out,box-shadow 160ms ease-out}.goal-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px #2463eb1c}.help{display:block;color:var(--muted);font-size:12px;margin-top:8px}.actions{display:grid;gap:10px;margin-top:22px}.button{display:flex;justify-content:center;align-items:center;gap:9px;width:100%;min-height:48px;border:0;border-radius:11px;font:inherit;font-weight:850;cursor:pointer;transition:transform 140ms ease-out,box-shadow 140ms ease-out,background 140ms ease-out}.button:active{transform:scale(.98)}.button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.button.primary{color:white;background:var(--blue);box-shadow:0 9px 20px #2463eb32}.button.primary:hover{background:var(--blue-dark);box-shadow:0 11px 24px #2463eb42}.button.secondary{color:var(--ink);background:#f1f5f9}.button.secondary:hover{background:#e7eef7}.route-result{display:none;margin-top:18px;padding:15px;border:1px solid #b9e5d3;border-radius:12px;background:#f0fdf8;color:#176c52;font-size:13px}.route-result.show{display:flex;gap:10px;align-items:flex-start}.route-result svg{width:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.route-result strong{display:block;color:#0d7653;margin-bottom:2px}.fine-print{margin:21px 0 0;color:var(--muted);font-size:12px;text-align:center}footer{color:var(--muted);font-size:13px;text-align:center;padding:0 0 35px}
+    @media(max-width:850px){.hero{grid-template-columns:1fr}.service-card{padding:25px}}@media(max-width:480px){.wrap{width:min(100% - 26px,1120px)}.journey{grid-template-columns:1fr}.service-card h1{font-size:34px}.header-inner{height:64px}header{height:64px}}
+  </style>
+</head>
 <body>
-  <main>
-    <p class="eyebrow">ClearGuide public-service demo</p>
-    <h1>공공 생활지원 서비스</h1>
-    <p id="selected-description">복잡한 신청 절차를 단계별로 안내하는 테스트 화면입니다.</p>
-    <div id="selected-service" style="margin:18px 0;padding:14px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff"></div>
-    <label for="goal-input">무엇을 하시려나요?</label>
-    <input id="goal-input" value="생활지원 서비스 신청 안내" aria-describedby="goal-help">
-    <small id="goal-help">ClearGuide가 등록된 업무 여정을 찾아 안내를 시작합니다.</small>
-    <button id="find-task">AI 안내 여정 찾기</button>
-    <button id="start-task">서비스 이용 시작</button>
+  <header><div class="wrap header-inner"><a class="brand" href="../"><span class="brand-mark"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17.5 12 5l5 12-5-2-5 2Z"/></svg></span>Clear<span>Guide</span></a><a class="back" href="catalog.html">← 서비스 목록으로</a></div></header>
+  <main class="wrap">
+    <div class="crumb"><span>공공서비스 데모</span><span>›</span><strong>안내 준비</strong></div>
+    <div class="hero">
+      <section class="service-card" aria-labelledby="service-title">
+        <div class="portal-row"><span class="portal-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></span><span id="service-portal" class="portal">복지로</span><span id="service-category" class="category">복지·생활</span></div>
+        <h1 id="service-title">복지서비스 모의 신청 안내</h1>
+        <p id="selected-description" class="service-desc">복지서비스를 찾고 신청에 필요한 준비사항을 확인하는 흐름입니다.</p>
+        <div class="section-label">안내받을 업무 순서</div>
+        <ol id="journey" class="journey"></ol>
+        <div class="privacy"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span><strong>안전한 샌드박스</strong><br>실제 기관에 접속하지 않으며, 개인정보·신청·결제를 요구하지 않습니다.</span></div>
+      </section>
+      <aside class="guide-card" aria-labelledby="guide-title">
+        <div class="guide-head"><div class="guide-kicker"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 4.5 3.3 7.7 8 9 4.7-1.3 8-4.5 8-9V7l-8-4Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg> CLEARGUIDE AI 안내</div><h2 id="guide-title">무엇을 하려고 하시나요?</h2><p>목표를 확인한 뒤, 가장 알맞은 업무 여정을 찾아드릴게요.</p></div>
+        <div class="guide-body"><label class="field-label" for="goal-input">하고 싶은 일을 한 문장으로 적어주세요</label><input id="goal-input" class="goal-input" value="복지서비스 신청 안내" aria-describedby="goal-help"><small id="goal-help" class="help">예: 주민등록등본 발급 방법을 안내받고 싶어요</small><div class="actions"><button id="find-task" class="button primary"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>AI 안내 여정 찾기</button><button id="start-task" class="button secondary"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5v14l11-7Z"/></svg>서비스 이용 시작</button></div><div id="route-result" class="route-result"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><div><strong id="route-title">안내 여정을 찾았습니다.</strong><span id="route-message">이 업무를 단계별로 시작할 수 있습니다.</span></div></div><p class="fine-print">AI 추천은 사용자의 확인 후 시작됩니다.</p></div>
+      </aside>
+    </div>
   </main>
+  <footer class="wrap">ClearGuide는 사용자가 공공서비스를 이해하고 끝까지 따라갈 수 있도록 돕습니다.</footer>
   <script src="../../sdk/clearguide-goal-router.js"></script>
   <script src="../../sdk/clearguide-player.js"></script>
   <script src="../workflow.js"></script>
@@ -20,23 +40,23 @@
     const serviceId = new URLSearchParams(location.search).get('service') || 'bokjiro-support';
     const selectedService = window.CLEARGUIDE_SERVICE_CATALOG.find(item => item.id === serviceId) || window.CLEARGUIDE_SERVICE_CATALOG[1];
     document.title = `ClearGuide · ${selectedService.title}`;
-    document.querySelector('#selected-service').innerHTML = `<strong>${selectedService.portal}</strong> · ${selectedService.title}<br><small>안내할 단계: ${selectedService.steps.join(' → ')}</small>`;
+    document.querySelector('#service-portal').textContent = selectedService.portal;
+    document.querySelector('#service-category').textContent = selectedService.category;
+    document.querySelector('#service-title').textContent = selectedService.title;
     document.querySelector('#selected-description').textContent = selectedService.description;
+    document.querySelector('#journey').innerHTML = selectedService.steps.map((step, index) => `<li><b>${index + 1}</b><span>${step}</span></li>`).join('');
     const player = new ClearGuidePlayer();
-    player.init({ showDashboard: true, accentColor: '#2563eb' });
+    player.init({ showDashboard: true, accentColor: selectedService.color });
     const router = new ClearGuideGoalRouter([window.CLEARGUIDE_DEMO_WORKFLOW]);
+    const resultPanel = document.querySelector('#route-result');
+    const startWorkflow = () => player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
     document.querySelector('#find-task').addEventListener('click', async () => {
       const result = await router.resolve(document.querySelector('#goal-input').value);
-      if (!result.workflowId) {
-        alert(result.reason);
-        return;
-      }
-      const confirmed = confirm(`“${window.CLEARGUIDE_DEMO_WORKFLOW.name}” 안내를 시작할까요?\n\n${result.reason}`);
-      if (confirmed) player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
+      if (!result.workflowId) { resultPanel.classList.add('show'); document.querySelector('#route-title').textContent = '안내 여정을 찾지 못했습니다.'; document.querySelector('#route-message').textContent = result.reason; return; }
+      resultPanel.classList.add('show'); document.querySelector('#route-title').textContent = '안내 여정을 찾았습니다.'; document.querySelector('#route-message').textContent = `${selectedService.title} 안내를 시작할 수 있습니다.`;
+      startWorkflow();
     });
-    document.querySelector('#start-task').addEventListener('click', () => {
-      player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
-    });
+    document.querySelector('#start-task').addEventListener('click', startWorkflow);
   </script>
 </body>
 </html>
