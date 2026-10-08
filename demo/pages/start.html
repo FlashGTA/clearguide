@@ -46,7 +46,7 @@
     document.querySelector('#selected-description').textContent = selectedService.description;
     document.querySelector('#journey').innerHTML = selectedService.steps.map((step, index) => `<li><b>${index + 1}</b><span>${step}</span></li>`).join('');
     const player = new ClearGuidePlayer();
-    player.init({ showDashboard: true, accentColor: selectedService.color });
+    player.init({ showDashboard: false, showToggleControl: false, accentColor: selectedService.color });
     const router = new ClearGuideGoalRouter([window.CLEARGUIDE_DEMO_WORKFLOW]);
     const resultPanel = document.querySelector('#route-result');
     const startWorkflow = () => player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
