@@ -51,6 +51,10 @@ class ClearViewEngine {
 
         if (session && session.workflow) {
           const currentStep = session.workflow.steps[session.currentStepIndex];
+          if (!currentStep) {
+            await chrome.storage.local.remove(['active_workflow_session']);
+            return false;
+          }
           if (this.urlMatchesPattern(window.location.href, currentStep.urlPattern)) {
             console.log("[ClearGuide] Active session found. Resuming step", session.currentStepIndex + 1);
             this.globalWorkflow = session.workflow;
@@ -630,6 +634,11 @@ class ClearViewEngine {
     if (this.isPaused) return;
     const step = this.config.steps[this.currentStep];
 
+    if (!step) {
+      this.renderWorkflowError({ code: 'INVALID_STEP', message: '가이드 단계를 불러오지 못했습니다.' });
+      return;
+    }
+
     // 텍스트 전용 스캔 (요소 없음)
     if (!step.selector) {
       this.trackingElement = null;
@@ -772,6 +781,20 @@ class ClearViewEngine {
     `;
     this.shadowRoot.querySelector('#cv-retry').addEventListener('click', () => this.renderHighlight());
     this.shadowRoot.querySelector('#cv-stop-m').addEventListener('click', () => this.exitGuide());
+    chrome.runtime.sendMessage({ action: 'recordWorkflowError', error: {
+      code: 'ELEMENT_NOT_FOUND', message: `${step.label || '현재 단계'} 요소를 찾을 수 없습니다.`
+    } });
+  }
+
+  renderWorkflowError(error) {
+    this.overlay.innerHTML = `
+      <div style="position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 18px 24px; border-radius: 20px; border: 1px solid #ef4444; pointer-events: auto; z-index: 2147483647; font-family: sans-serif;">
+        <strong style="color: #fca5a5;">가이드를 잠시 멈췄습니다</strong>
+        <div style="margin-top: 8px;">${this.escapeHtml(error.message)}</div>
+        <button id="cv-error-exit" style="margin-top: 12px; background: #ef4444; border: none; color: white; padding: 7px 12px; border-radius: 6px; cursor: pointer;">종료</button>
+      </div>`;
+    this.shadowRoot.querySelector('#cv-error-exit').addEventListener('click', () => this.exitGuide());
+    chrome.runtime.sendMessage({ action: 'recordWorkflowError', error });
   }
 
   exitGuide() {

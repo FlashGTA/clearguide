@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공공서비스 데모 시작</title></head>
+<body>
+  <main>
+    <p class="eyebrow">ClearGuide public-service demo</p>
+    <h1>공공 생활지원 서비스</h1>
+    <p>복잡한 신청 절차를 단계별로 안내하는 테스트 화면입니다.</p>
+    <label for="goal-input">무엇을 하시려나요?</label>
+    <input id="goal-input" value="생활지원 서비스 신청 안내" aria-describedby="goal-help">
+    <small id="goal-help">ClearGuide가 등록된 업무 여정을 찾아 안내를 시작합니다.</small>
+    <button id="find-task">AI 안내 여정 찾기</button>
+    <button id="start-task">서비스 이용 시작</button>
+  </main>
+  <script src="../../sdk/clearguide-goal-router.js"></script>
+  <script src="../../sdk/clearguide-player.js"></script>
+  <script src="../workflow.js"></script>
+  <script>
+    const player = new ClearGuidePlayer();
+    player.init({ showDashboard: true, accentColor: '#2563eb' });
+    const router = new ClearGuideGoalRouter([window.CLEARGUIDE_DEMO_WORKFLOW]);
+    document.querySelector('#find-task').addEventListener('click', async () => {
+      const result = await router.resolve(document.querySelector('#goal-input').value);
+      if (!result.workflowId) {
+        alert(result.reason);
+        return;
+      }
+      const confirmed = confirm(`“${window.CLEARGUIDE_DEMO_WORKFLOW.name}” 안내를 시작할까요?\n\n${result.reason}`);
+      if (confirmed) player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
+    });
+    document.querySelector('#start-task').addEventListener('click', () => {
+      player.play(window.CLEARGUIDE_DEMO_WORKFLOW);
+    });
+  </script>
+</body>
+</html>
