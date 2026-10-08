@@ -19,9 +19,14 @@ async function checkAndBroadcastWorkflow(tabId, url) {
   const result = await chrome.storage.local.get(['active_workflow_session']);
   const session = result['active_workflow_session'];
 
-  if (session && session.workflow) {
+  if (session && session.workflow && Array.isArray(session.workflow.steps)) {
     const { workflow, currentStepIndex } = session;
     const currentStep = workflow.steps[currentStepIndex];
+
+    if (!currentStep) {
+      await chrome.storage.local.remove(['active_workflow_session']);
+      return;
+    }
 
     // URL 패턴 매칭 (간단한 포함 여부 체크로 우선 구현)
     if (urlMatchesPattern(url, currentStep.urlPattern)) {
@@ -107,10 +112,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   else if (request.action === "startGlobalWorkflow") {
     const { workflow } = request;
+    if (!workflow || !Array.isArray(workflow.steps) || workflow.steps.length === 0) {
+      sendResponse({ success: false, error: 'INVALID_WORKFLOW' });
+      return true;
+    }
     const session = {
       workflow: workflow,
       currentStepIndex: 0,
-      startTime: Date.now()
+      startTime: Date.now(),
+      status: 'active',
+      lastError: null
     };
     chrome.storage.local.set({ 'active_workflow_session': session }, () => {
       console.log("[ClearGuide] Global Workflow started:", workflow.id);
@@ -123,6 +134,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const session = result['active_workflow_session'];
       if (session) {
         session.currentStepIndex = stepIndex;
+        session.lastError = null;
         chrome.storage.local.set({ 'active_workflow_session': session }, () => {
           sendResponse({ success: true });
         });
@@ -132,6 +144,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   else if (request.action === "clearWorkflow") {
     chrome.storage.local.remove(['active_workflow_session'], () => {
       sendResponse({ success: true });
+    });
+  }
+
+  else if (request.action === "recordWorkflowError") {
+    const { error } = request;
+    chrome.storage.local.get(['active_workflow_session'], (result) => {
+      const session = result['active_workflow_session'];
+      if (!session) {
+        sendResponse({ success: false });
+        return;
+      }
+      session.status = 'blocked';
+      session.lastError = {
+        code: error?.code || 'UNKNOWN',
+        message: error?.message || '알 수 없는 오류',
+        at: new Date().toISOString()
+      };
+      chrome.storage.local.set({ active_workflow_session: session }, () => {
+        sendResponse({ success: true });
+      });
     });
   }
 

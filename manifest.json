@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ClearGuide",
-  "version": "0.1.0",
-  "description": "Guided web overlay extension for step-by-step page assistance",
+  "version": "0.2.0",
+  "description": "Guided web assistance for completing complex public-service tasks",
   "permissions": [
     "storage",
     "activeTab",

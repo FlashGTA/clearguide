@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>서비스 선택</title></head>
+<body>
+  <main>
+    <p class="eyebrow">2 / 4 · 서비스와 신청자 확인</p>
+    <h1>신청 준비 정보</h1>
+    <label for="service-type">이용할 서비스</label>
+    <select id="service-type"><option value="">선택하세요</option><option>생활지원 상담</option><option>복지서비스 안내</option></select>
+    <label for="applicant-type">신청자 유형</label>
+    <select id="applicant-type"><option value="">선택하세요</option><option>본인</option><option>가족·보호자</option></select>
+    <label class="check"><input id="document-check" type="checkbox"> 준비 서류 안내를 확인했습니다.</label>
+    <p class="hint">이 데모는 실제 개인정보를 요구하지 않습니다.</p>
+  </main>
+  <script src="../../sdk/clearguide-player.js"></script>
+  <script src="../workflow.js"></script>
+  <script>const player = new ClearGuidePlayer(); player.init({ showDashboard: true, accentColor: '#2563eb' });</script>
+</body>
+</html>
