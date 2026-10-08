@@ -46,6 +46,8 @@ class ClearGuidePlayer {
         if (!workflow || !workflow.steps) return;
         this.workflow = workflow;
         this.currentStep = 0;
+        // 명시적으로 시작한 데모/가이드는 첫 안내부터 바로 보이게 합니다.
+        this.isGuideHidden = false;
         this.startGuide();
     }
 
