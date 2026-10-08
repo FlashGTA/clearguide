@@ -5,7 +5,8 @@
   <main>
     <p class="eyebrow">ClearGuide public-service demo</p>
     <h1>공공 생활지원 서비스</h1>
-    <p>복잡한 신청 절차를 단계별로 안내하는 테스트 화면입니다.</p>
+    <p id="selected-description">복잡한 신청 절차를 단계별로 안내하는 테스트 화면입니다.</p>
+    <div id="selected-service" style="margin:18px 0;padding:14px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff"></div>
     <label for="goal-input">무엇을 하시려나요?</label>
     <input id="goal-input" value="생활지원 서비스 신청 안내" aria-describedby="goal-help">
     <small id="goal-help">ClearGuide가 등록된 업무 여정을 찾아 안내를 시작합니다.</small>
@@ -16,6 +17,11 @@
   <script src="../../sdk/clearguide-player.js"></script>
   <script src="../workflow.js"></script>
   <script>
+    const serviceId = new URLSearchParams(location.search).get('service') || 'bokjiro-support';
+    const selectedService = window.CLEARGUIDE_SERVICE_CATALOG.find(item => item.id === serviceId) || window.CLEARGUIDE_SERVICE_CATALOG[1];
+    document.title = `ClearGuide · ${selectedService.title}`;
+    document.querySelector('#selected-service').innerHTML = `<strong>${selectedService.portal}</strong> · ${selectedService.title}<br><small>안내할 단계: ${selectedService.steps.join(' → ')}</small>`;
+    document.querySelector('#selected-description').textContent = selectedService.description;
     const player = new ClearGuidePlayer();
     player.init({ showDashboard: true, accentColor: '#2563eb' });
     const router = new ClearGuideGoalRouter([window.CLEARGUIDE_DEMO_WORKFLOW]);

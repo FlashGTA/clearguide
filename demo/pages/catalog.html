@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClearGuide · 공공서비스 선택</title>
+  <style>
+    :root{--ink:#0f172a;--muted:#64748b;--line:#dbe4f0;--blue:#2563eb;--soft:#eff6ff;--bg:#f8fafc}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(1050px,calc(100% - 36px));margin:auto}header{padding:28px 0;display:flex;justify-content:space-between;align-items:center}header a{color:var(--muted);text-decoration:none}.brand{font-weight:900;font-size:20px;letter-spacing:-.04em}.brand span{color:var(--blue)}.eyebrow{color:var(--blue);font-weight:800;font-size:13px;letter-spacing:.04em}h1{font-size:clamp(32px,5vw,54px);line-height:1.12;letter-spacing:-.06em;margin:12px 0}h2{letter-spacing:-.04em;margin-bottom:8px}.lead{color:var(--muted);max-width:700px}.notice{margin:28px 0;padding:15px 18px;background:#fff;border:1px solid #bfdbfe;border-radius:14px;color:#334155}.notice strong{color:var(--blue)}.catalog{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:30px 0 64px}.service{display:flex;flex-direction:column;background:white;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 8px 24px #0f172a0b}.service-top{display:flex;justify-content:space-between;align-items:center}.service-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--soft);color:var(--blue)}.service-mark svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.portal{font-weight:900}.category{font-size:12px;color:var(--muted);background:#f1f5f9;border-radius:999px;padding:4px 8px}.service h2{font-size:20px;margin:22px 0 7px}.service p{color:var(--muted);font-size:14px;min-height:68px;margin:0}.steps{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0;min-height:56px}.steps span{font-size:12px;color:#334155;background:var(--soft);border-radius:7px;padding:4px 7px}.start{margin-top:auto;display:block;text-align:center;background:var(--blue);color:white;text-decoration:none;border-radius:10px;padding:10px;font-weight:800}.start:hover{filter:brightness(.94)}.footnote{padding:20px 0 50px;color:var(--muted);font-size:13px}@media(max-width:800px){.catalog{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="wrap"><a class="brand" href="../">Clear<span>Guide</span></a><a href="../">소개 페이지로 돌아가기</a></header>
+  <main class="wrap">
+    <div class="eyebrow">공공서비스 데모 · 안내 여정 선택</div>
+    <h1>어떤 업무를<br>도와드릴까요?</h1>
+    <p class="lead">공공서비스는 사이트마다 메뉴와 신청 절차가 다릅니다. 아래 샘플 중 하나를 고르면 ClearGuide가 복잡한 업무를 한 단계씩 안내합니다.</p>
+    <div class="notice"><strong>데모 안내</strong> · 아래 서비스는 실제 기관에 접속하거나 신청하지 않는 샌드박스입니다. 실제 화면에서 필요한 안내·복구 흐름을 재현합니다.</div>
+    <section><h2>안내할 수 있는 공공서비스</h2><div id="catalog" class="catalog"></div></section>
+  </main>
+  <footer class="wrap footnote">ClearGuide는 민감정보를 받지 않으며, 민원 제출·결제·예약 확정은 수행하지 않습니다.</footer>
+  <script src="../../sdk/clearguide-goal-router.js"></script>
+  <script src="../workflow.js"></script>
+  <script>
+    const catalog = document.querySelector('#catalog');
+    catalog.innerHTML = window.CLEARGUIDE_SERVICE_CATALOG.map(service => `
+      <article class="service" style="border-top:4px solid ${service.color}">
+        <div class="service-top"><div class="service-mark" style="color:${service.color}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg></div><span class="category">${service.category}</span></div><span class="portal" style="margin-top:14px">${service.portal}</span>
+        <h2>${service.title}</h2><p>${service.description}</p>
+        <div class="steps">${service.steps.map((step, index) => `<span>${index + 1}. ${step}</span>`).join('')}</div>
+        <a class="start" href="start.html?service=${service.id}">이 서비스 안내 시작</a>
+      </article>`).join('');
+  </script>
+</body>
+</html>

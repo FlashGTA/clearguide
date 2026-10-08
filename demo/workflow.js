@@ -1,5 +1,38 @@
 const DEMO_PAGES = new URL('./', document.baseURI);
 
+window.CLEARGUIDE_SERVICE_CATALOG = [
+  {
+    id: 'gov24-certificate',
+    portal: '정부24',
+    title: '주민등록등본 발급 안내',
+    description: '메뉴를 찾고 신청 조건과 발급 절차를 확인하는 복잡한 민원 흐름',
+    category: '민원·증명',
+    steps: ['서비스 찾기', '신청 조건 확인', '발급 형태 선택', '본인 확인 안내', '수령 방법 선택', '신청 전 확인'],
+    color: '#2563eb',
+    url: 'https://www.gov.kr/'
+  },
+  {
+    id: 'bokjiro-support',
+    portal: '복지로',
+    title: '복지서비스 모의 신청 안내',
+    description: '복지서비스를 찾고 신청에 필요한 준비사항을 확인하는 흐름',
+    category: '복지·생활',
+    steps: ['서비스 찾기', '대상 조건 확인', '신청자 유형 선택', '준비 서류 확인', '가구 정보 안내', '신청 전 확인'],
+    color: '#0f9f6e',
+    url: 'https://www.bokjiro.go.kr/'
+  },
+  {
+    id: 'public-reservation',
+    portal: '공공예약 포털',
+    title: '문화시설 예약 안내',
+    description: '시설·날짜·시간을 고르고 예약 전 확인까지 이어지는 흐름',
+    category: '예약·문화',
+    steps: ['시설 찾기', '날짜 선택', '시간 선택', '이용자 유형 확인', '예약 정보 확인', '예약 전 동의'],
+    color: '#7c3aed',
+    url: null
+  }
+];
+
 window.CLEARGUIDE_DEMO_WORKFLOW = {
   id: 'public-service-assistance-demo-v1',
   name: '공공 생활지원 서비스 신청 안내',
