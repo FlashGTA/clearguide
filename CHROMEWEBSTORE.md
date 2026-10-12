@@ -7,9 +7,9 @@ This file is the source of truth for Chrome Web Store submission metadata and re
 ## Submission status
 
 - **Code baseline:** IN PROGRESS — branch `feat/store-baseline-studio-player`
-- **Manifest/static syntax check:** PASS
-- **Browser E2E smoke test:** PENDING
-- **Developer account registration / fee / email verification / 2-Step Verification:** USER ACTION REQUIRED
+- **Manifest/static syntax check:** PASS — main reconciliation validated
+- **Browser E2E smoke test:** PARTIAL PASS — Player Chrome runtime and isolated Chromium extension load/message checks; manual site permission/restart gates remain
+- **Developer account:** EXISTING — owner confirms three apps already registered (2026-10-12); current email verification / 2-Step Verification must be confirmed in Dashboard
 - **Privacy policy:** READY IN REPO; public main-branch URL available after merge
 - **Screenshots / promo assets:** PENDING
 - **Open-source license:** Apache-2.0 — READY
