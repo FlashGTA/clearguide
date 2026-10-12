@@ -102,7 +102,11 @@ async function checkAndBroadcastWorkflow(tabId, url) {
 
   const { workflow, currentStepIndex } = session;
   const currentStep = workflow.steps?.[currentStepIndex];
-  if (!currentStep || !urlMatchesPattern(url, currentStep.urlPattern)) return;
+  if (!currentStep) {
+    await chrome.storage.local.remove("active_workflow_session");
+    return;
+  }
+  if (!urlMatchesPattern(url, currentStep.urlPattern)) return;
 
   try {
     await chrome.tabs.sendMessage(tabId, {
@@ -214,7 +218,9 @@ async function handleMessage(request, sender) {
         active_workflow_session: {
           workflow,
           currentStepIndex: 0,
-          startTime: Date.now()
+          startTime: Date.now(),
+          status: "active",
+          lastError: null
         }
       });
       return { success: true };
@@ -224,6 +230,20 @@ async function handleMessage(request, sender) {
       const { active_workflow_session: session } = await chrome.storage.local.get("active_workflow_session");
       if (!session) return { success: false, error: "NO_ACTIVE_WORKFLOW" };
       session.currentStepIndex = request.stepIndex;
+      session.lastError = null;
+      await chrome.storage.local.set({ active_workflow_session: session });
+      return { success: true };
+    }
+
+    case "recordWorkflowError": {
+      const { active_workflow_session: session } = await chrome.storage.local.get("active_workflow_session");
+      if (!session) return { success: false, error: "NO_ACTIVE_WORKFLOW" };
+      session.status = "blocked";
+      session.lastError = {
+        code: request.error?.code || "UNKNOWN",
+        message: request.error?.message || "알 수 없는 오류",
+        at: new Date().toISOString()
+      };
       await chrome.storage.local.set({ active_workflow_session: session });
       return { success: true };
     }

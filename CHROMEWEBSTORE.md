@@ -1,6 +1,6 @@
 # Chrome Web Store — ClearGuide Studio
 
-Last updated: 2026-10-05
+Last updated: 2026-10-12
 
 This file is the source of truth for Chrome Web Store submission metadata and readiness.
 
@@ -186,3 +186,11 @@ uploaded ClearGuide Studio ZIP
 - moves website access toward runtime optional host permissions
 - establishes the public repository as the release source of truth
 - adds Store/privacy/contribution documentation
+
+## Main reconciliation — 2026-10-12
+
+- Retains the Studio identity, optional per-origin permissions, bundled dynamic content scripts, and explicit CSP.
+- Includes the latest public-service demo, Goal Router, Player navigation recovery, and refreshed extension icons from main.
+- Preserves workflow error recording and exhausted-session cleanup alongside imported-template normalization.
+- The public-service demo and SDK are not included in the Store ZIP; Studio remains the local authoring/preview tool.
+- Runtime smoke-test and brand-review gates remain required before merge, tagging, or Store submission.

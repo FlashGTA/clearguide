@@ -20,7 +20,8 @@ class ClearGuidePlayer {
         this.config = {
             baseUrl: '', // 아이콘 등 리소스 경로
             accentColor: '#3b82f6',
-            showDashboard: false // v1.1.0 기본값
+            showDashboard: false, // v1.1.0 기본값
+            showToggleControl: true
         };
 
         this.boundTick = this.tick.bind(this);
@@ -80,6 +81,8 @@ class ClearGuidePlayer {
         this.validateWorkflow(workflow);
         this.workflow = workflow;
         this.currentStep = 0;
+        // 명시적으로 시작한 데모/가이드는 첫 안내부터 바로 보이게 합니다.
+        this.isGuideHidden = false;
         this.startGuide();
     }
 
@@ -137,7 +140,7 @@ class ClearGuidePlayer {
         }
 
         this.renderHighlight();
-        this.renderToggleControl();
+        if (this.config.showToggleControl) this.renderToggleControl();
         if (this.config.showDashboard) this.renderDashboard();
 
         // 초기 가시성 설정 적용
